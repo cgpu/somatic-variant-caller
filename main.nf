@@ -8,49 +8,54 @@ log.info "===================================================================="
 int threads = Runtime.getRuntime().availableProcessors()
 threadmem = (((Runtime.getRuntime().maxMemory() * 4) / threads) as nextflow.util.MemoryUnit)
 
-
-Channel.fromPath(params.samples)
-    .ifEmpty { exit 1, "samples file not found: ${params.samples}" }
-    .splitCsv(sep: '\t')
-    .map{ patientId, sampleId, status, fastq1, fastq2 -> [patientId, sampleId, status, file(fastq1).baseName, [file(fastq1), file(fastq2)]] }
-    .into { samples; reads; reads_kraken }
-
+// fasta
 params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
 if (params.fasta) {
     Channel.fromPath(params.fasta)
            .ifEmpty { exit 1, "fasta annotation file not found: ${params.fasta}" }
            .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; fasta_mutect; fasta_variant_eval }
 }
+// fai
 params.fai = params.genome ? params.genomes[ params.genome ].fai ?: false : false
 if (params.fai) {
     Channel.fromPath(params.fai)
            .ifEmpty { exit 1, "fasta index file not found: ${params.fai}" }
            .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; fai_variant_eval }
 }
+
+// dict
 params.dict = params.genome ? params.genomes[ params.genome ].dict ?: false : false
 if (params.dict) {
     Channel.fromPath(params.dict)
            .ifEmpty { exit 1, "dict annotation file not found: ${params.dict}" }
            .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval }
 }
+
+//dbsnp_gz
 params.dbsnp_gz = params.genome ? params.genomes[ params.genome ].dbsnp_gz ?: false : false
 if (params.dbsnp_gz) {
     Channel.fromPath(params.dbsnp_gz)
            .ifEmpty { exit 1, "dbsnp annotation file not found: ${params.dbsnp_gz}" }
            .set { dbsnp_gz}
 }
+
+//dbsnp_idx_gz
 params.dbsnp_idx_gz = params.genome ? params.genomes[ params.genome ].dbsnp_idx_gz ?: false : false
 if (params.dbsnp_idx_gz) {
     Channel.fromPath(params.dbsnp_idx_gz)
            .ifEmpty { exit 1, "dbsnp_idx_gz annotation file not found: ${params.dbsnp_idx_gz}" }
            .set { dbsnp_idx_gz}
 }
+
+//golden_indel_gz
 params.golden_indel_gz = params.genome ? params.genomes[ params.genome ].golden_indel_gz ?: false : false
 if (params.golden_indel_gz) {
     Channel.fromPath(params.golden_indel_gz)
            .ifEmpty { exit 1, "golden_indel_gz annotation file not found: ${params.golden_indel_gz}" }
            .set { golden_indel_gz }
 }
+
+//golden_indel_idx_gz
 params.golden_indel_idx_gz = params.genome ? params.genomes[ params.genome ].golden_indel_idx_gz ?: false : false
 if (params.golden_indel_idx_gz) {
     Channel.fromPath(params.golden_indel_idx_gz)
@@ -58,36 +63,47 @@ if (params.golden_indel_idx_gz) {
            .set { golden_indel_idx_gz }
 }
 
+//bwa_index_amb
 params.bwa_index_amb = params.genome ? params.genomes[ params.genome ].bwa_index_amb ?: false : false
 if (params.bwa_index_amb) {
     Channel.fromPath(params.bwa_index_amb)
            .ifEmpty { exit 1, "bwa_index_amb annotation file not found: ${params.bwa_index_amb}" }
            .set { bwa_index_amb }
 }
+
+//bwa_index_ann
 params.bwa_index_ann = params.genome ? params.genomes[ params.genome ].bwa_index_ann ?: false : false
 if (params.bwa_index_ann) {
     Channel.fromPath(params.bwa_index_ann)
            .ifEmpty { exit 1, "bwa_index_ann annotation file not found: ${params.bwa_index_ann}" }
            .set { bwa_index_ann }
 }
+
+//bwa_index_bwt
 params.bwa_index_bwt = params.genome ? params.genomes[ params.genome ].bwa_index_bwt ?: false : false
 if (params.bwa_index_bwt) {
     Channel.fromPath(params.bwa_index_bwt)
            .ifEmpty { exit 1, "bwa_index_bwt annotation file not found: ${params.bwa_index_bwt}" }
            .set { bwa_index_bwt }
 }
+
+//bwa_index_pac
 params.bwa_index_pac = params.genome ? params.genomes[ params.genome ].bwa_index_pac ?: false : false
 if (params.bwa_index_pac) {
     Channel.fromPath(params.bwa_index_pac)
            .ifEmpty { exit 1, "bwa_index_pac annotation file not found: ${params.bwa_index_pac}" }
            .set { bwa_index_pac }
 }
+
+//bwa_index_sa
 params.bwa_index_sa = params.genome ? params.genomes[ params.genome ].bwa_index_sa ?: false : false
 if (params.bwa_index_sa) {
     Channel.fromPath(params.bwa_index_sa)
            .ifEmpty { exit 1, "bwa_index_sa annotation file not found: ${params.bwa_index_sa}" }
            .set { bwa_index_sa }
 }
+
+// bed
 if (params.bed) {
     Channel.fromPath(params.bed)
            .ifEmpty { exit 1, "BED file for to define regions not found: ${params.bed}" }
@@ -175,58 +191,27 @@ process gunzip_golden_indel {
     }
 }
 
-process fastqc {
-    tag "$name"
-    publishDir "${params.outdir}/fastqc", mode: 'copy',
-        saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
-    container 'flowcraft/fastqc:0.11.7-1'
+// TODO:
+// Create junction for accepting BAM as input
+Channel.fromPath(params.samples)
+    .ifEmpty { exit 1, "samples file not found: ${params.samples}" }
+    .splitCsv(sep: ',', )
+    .map{ shared_matched_pair_id, unique_subject_id, case_control_status, bam -> [shared_matched_pair_id, unique_subject_id, case_control_status, file(bam).baseName, file(bam)] }
+    .into { samples; bams; bams_kraken }
 
-    when:
-    !params.skip_fastqc
-
-    input:
-    set val(patientId), val(sampleId), val(status), val(name), file(reads) from reads
-
-    output:
-    file "*_fastqc.{zip,html}" into fastqc_results
-
-    script:
-    """
-    fastqc -q $reads
-    """
-}
-
-bwa_index = fasta_bwa.merge(bwa_index_amb, bwa_index_ann, bwa_index_bwt, bwa_index_pac, bwa_index_sa)
-bwa = samples.combine(bwa_index)
-
-process BWA {
-    tag "$name"
-    container 'kathrinklee/bwa:latest'
-
-    input:
-    set val(patientId), val(sampleId), val(status), val(name), file(reads),
-    file(fasta), file(amb), file(ann), file(bwt), file(pac), file(sa) from bwa
-
-    output:
-    set val(patientId), val(sampleId), val(status), val(name), file("${name}.sam") into sam
-
-    """
-    bwa mem -M -R '@RG\\tID:${name}\\tSM:${name}\\tPL:Illumina' $fasta $reads > ${name}.sam
-    """
-}
 
 process BWA_sort {
     tag "$sam"
     container 'lifebitai/samtools:latest'
 
     input:
-    set val(patientId), val(sampleId), val(status), val(name), file(sam) from sam
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bams
 
     output:
-    set val(patientId), val(sampleId), val(status), val(name), file("${name}-sorted.bam") into bam_sort, bam_sort_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}-sorted.bam") into bam_sort, bam_sort_qc
 
     """
-    samtools sort -o ${name}-sorted.bam -O BAM $sam
+    samtools sort -o ${name}-sorted.bam $bam
     """
 }
 
@@ -236,7 +221,7 @@ process RunBamQCmapped {
     container 'maxulysse/sarek:latest'
 
     input:
-    set val(patientId), val(sampleId), val(status), val(name), file(bam) from bam_sort_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bam_sort_qc
 
     output:
     file("${name}") into bamQCmappedReport
@@ -264,10 +249,10 @@ process MarkDuplicates {
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(patientId), val(sampleId), val(status), val(name), file(bam_sort) from bam_sort
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam_sort) from bam_sort
 
     output:
-    set val(name), file("${name}.bam"), file("${name}.bai"), val(patientId), val(sampleId), val(status) into bam_markdup_baserecalibrator, bam_markdup_applybqsr
+    set val(name), file("${name}.bam"), file("${name}.bai"), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) into bam_markdup_baserecalibrator, bam_markdup_applybqsr
     file ("${name}.bam.metrics") into markDuplicatesReport
 
     """
@@ -287,7 +272,7 @@ process BaseRecalibrator {
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(name), file(bam_markdup), file(bai), val(patientId), val(sampleId), val(status), 
+    set val(name), file(bam_markdup), file(bai), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), 
     file(fasta), file(fai), file(dict), file(dbsnp), file(dbsnp_idx), file(golden_indel), file(golden_indel_idx) from baserecalibrator
 
     output:
@@ -311,10 +296,10 @@ process ApplyBQSR {
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(name), file(baserecalibrator_table), file(bam), file(bai), val(patientId), val(sampleId), val(status) from applybqsr
+    set val(name), file(baserecalibrator_table), file(bam), file(bai), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) from applybqsr
 
     output:
-    set val(patientId), val(sampleId), val(status), val(name), file("${name}_bqsr.bam"), file("${name}_bqsr.bai") into bam_for_qc, bam_haplotypecaller, bam_mutect
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_bqsr.bam"), file("${name}_bqsr.bai") into bam_for_qc, bam_haplotypecaller, bam_mutect
 
     script:
     """
@@ -328,7 +313,7 @@ process RunBamQCrecalibrated {
     container 'maxulysse/sarek:latest'
 
     input:
-    set val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai) from bam_for_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from bam_for_qc
 
     output:
     file("${name}_recalibrated") into bamQCrecalibratedReport
@@ -368,7 +353,7 @@ process HaplotypeCaller {
 
     input:
     set val(intervals), file(fasta), file(fai), file(dict),
-    val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai) from haplotypecaller
+    val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from haplotypecaller
 
     output:
     file("${name}.g.vcf") into haplotypecaller_gvcf
@@ -420,7 +405,6 @@ bamsNormal = Channel.create()
 bamsTumour = Channel.create()
 
 bam_mutect.choice( bamsTumour, bamsNormal ) { it[2] =~ 1 ? 0 : 1 }
-
 combined_bam = bamsNormal.combine(bamsTumour, by: 0)
 
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
@@ -439,7 +423,7 @@ process Mutect2 {
     file(fasta), file(fai), file(dict) from mutect
 
     output:
-    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval
+    set val("${tumourunique_subject_id}_vs_${unique_subject_id}"), file("${tumourunique_subject_id}_vs_${unique_subject_id}.vcf") into vcf_variant_eval
 
     script:
     """
@@ -448,9 +432,9 @@ process Mutect2 {
     -I ${tumourBam}  -tumor ${tumourName} \
     -I ${bam} -normal ${name} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf
-
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     #-L \${intervalBed} \
+
     """
 }
 
@@ -461,17 +445,17 @@ if (params.bed) {
 }
 
 process Manta {
-    tag {tumourSampleId + "_vs_" + sampleId}
+    tag {tumourunique_subject_id + "_vs_" + unique_subject_id}
     container 'maxulysse/sarek:latest'
-    publishDir "${params.outdir}/StructuralVariance/${patientId}", mode: 'copy'
+    publishDir "${params.outdir}/StructuralVariance/${shared_matched_pair_id}", mode: 'copy'
 
     input:
-    set val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
-    val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai),
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai),
+    val(tumourunique_subject_id), val(tumourcase_control_status), val(tumourName), file(tumourBam), file(tumourBai),
     file(fasta), file(fai), file(dict), file(bed) from manta
 
     output:
-    set val(patientId), val(sampleId), val(tumourSampleId), file("*.vcf.gz"), file("*.vcf.gz.tbi") into manta_results
+    set val(shared_matched_pair_id), val(unique_subject_id), val(tumourunique_subject_id), file("*.vcf.gz"), file("*.vcf.gz.tbi") into manta_results
     
     script:
     beforeScript = params.bed ? "bgzip --threads ${task.cpus} -c *.bed > call_targets.bed.gz ; tabix call_targets.bed.gz" : ""
@@ -487,46 +471,21 @@ process Manta {
 
     python Manta/runWorkflow.py -m local -j ${task.cpus}
     mv Manta/results/variants/candidateSmallIndels.vcf.gz \
-        Manta_${tumourSampleId}_vs_${sampleId}.candidateSmallIndels.vcf.gz
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSmallIndels.vcf.gz
     mv Manta/results/variants/candidateSmallIndels.vcf.gz.tbi \
-        Manta_${tumourSampleId}_vs_${sampleId}.candidateSmallIndels.vcf.gz.tbi
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSmallIndels.vcf.gz.tbi
     mv Manta/results/variants/candidateSV.vcf.gz \
-        Manta_${tumourSampleId}_vs_${sampleId}.candidateSV.vcf.gz
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSV.vcf.gz
     mv Manta/results/variants/candidateSV.vcf.gz.tbi \
-        Manta_${tumourSampleId}_vs_${sampleId}.candidateSV.vcf.gz.tbi
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSV.vcf.gz.tbi
     mv Manta/results/variants/diploidSV.vcf.gz \
-        Manta_${tumourSampleId}_vs_${sampleId}.diploidSV.vcf.gz
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.diploidSV.vcf.gz
     mv Manta/results/variants/diploidSV.vcf.gz.tbi \
-        Manta_${tumourSampleId}_vs_${sampleId}.diploidSV.vcf.gz.tbi
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.diploidSV.vcf.gz.tbi
     mv Manta/results/variants/somaticSV.vcf.gz \
-        Manta_${tumourSampleId}_vs_${sampleId}.somaticSV.vcf.gz
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.somaticSV.vcf.gz
     mv Manta/results/variants/somaticSV.vcf.gz.tbi \
-        Manta_${tumourSampleId}_vs_${sampleId}.somaticSV.vcf.gz.tbi
-    """
-}
-
-variant_eval = vcf_variant_eval.merge(fasta_variant_eval, fai_variant_eval, dict_variant_eval)
-
-process kraken2 {
-    tag "$name"
-    publishDir "${params.outdir}/kraken/${patientId}", mode: 'copy'
-    container 'flowcraft/kraken2:2.0.7-1'
-
-    input:
-    set val(patientId), val(sampleId), val(status), val(name), file(reads) from reads_kraken
-
-    output:
-    set file("${sampleId}_kraken.out"), file("${sampleId}_kraken.report") into kraken_results
-
-    script:
-    """
-    kraken2 \
-    --threads ${task.cpus} \
-    --paired \
-    --db ${kraken_db} \
-    --fastq-input $reads \
-    --output ${sampleId}_kraken.out \
-    --report ${sampleId}_kraken.report
+        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.somaticSV.vcf.gz.tbi
     """
 }
 
@@ -538,7 +497,6 @@ process multiqc {
     !params.skip_multiqc
 
     input:
-    file (fastqc:'fastqc/*') from fastqc_results.collect().ifEmpty([])
     file (bam_metrics) from markDuplicatesReport.collect().ifEmpty([])
     file (bamQC) from bamQCmappedReport.collect().ifEmpty([])
     file (bamQCrecalibrated) from bamQCrecalibratedReport.collect().ifEmpty([])
@@ -550,6 +508,6 @@ process multiqc {
 
     script:
     """
-    multiqc . -m fastqc -m picard -m qualimap -m gatk
+    multiqc . -m picard -m qualimap -m gatk
     """
 }
