@@ -195,7 +195,7 @@ process gunzip_golden_indel {
 // Create junction for accepting BAM as input
 Channel.fromPath(params.samples)
     .ifEmpty { exit 1, "samples file not found: ${params.samples}" }
-    .splitCsv(sep: ',', )
+    .splitCsv(sep: ',',  skip: 1 )
     .map{ shared_matched_pair_id, unique_subject_id, case_control_status, bam -> [shared_matched_pair_id, unique_subject_id, case_control_status, file(bam).baseName, file(bam)] }
     .into { samples; bams; bams_kraken }
 
