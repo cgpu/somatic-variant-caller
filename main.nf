@@ -176,8 +176,8 @@ Channel.fromPath(params.samples)
     .into { samples; bams }
 
 
-process BWA_sort {
-    tag "$sam"
+process BAM_sort {
+    tag "$bam"
     container 'lifebitai/samtools:latest'
 
     input:
@@ -187,13 +187,13 @@ process BWA_sort {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc
 
     """
-    samtools sort -o ${name}-sorted.bam $bam
-    samtools index ${name}-sorted.bam ${name}-sorted.bai
-    
+    samtools index $bam
     samtools view \
-    -b ${name}-sorted.bam \
-    chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr9 chr20 chr21 \
-    chrX > ${name}_mitoless.bam
+    -b $bam \
+    chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr9 chr20 \
+    chr21  > temp.bam && mv temp.bam ${name}.bam
+    samtools sort -o ${name}_mitoless.bam ${name}.bam
+    rm ${name}.bam
     """
 }
 
