@@ -112,34 +112,10 @@ if (params.bed) {
     bed_basename.map { file -> tuple(file.baseName, file) }.set{ bed_interval }
 }
 
-kraken_db = params.kraken_db
+//intervals_list 
+Channel.fromPath(params.interval_list_path, type: 'file')
+       .set {interval_list}
 
-process BedToIntervalList {
-    tag "$bed"
-    container 'broadinstitute/gatk:latest'
-
-    input:
-    set val(name), file(bed) from bed_interval
-    file dict from dict_interval
-
-    output:
-    file("${name}.interval_list") into interval_list
-
-    when: params.bed
-
-    script:
-    """
-    gatk BedToIntervalList \
-    -I ${bed} \
-    -O ${name}.interval_list \
-    -SD ${dict}
-
-    # remove header, columns 3 onwards & reformat
-    sed -i '/^@/d' ${name}.interval_list
-    cut -f 1-3 ${name}.interval_list > tmp.interval_list
-    awk 'BEGIN { OFS = "" }{ print \$1,":",\$2,"-",\$3 }' tmp.interval_list > ${name}.interval_list
-    """
-}
 
 process gunzip_dbsnp {
     tag "$dbsnp_gz"
@@ -197,7 +173,7 @@ Channel.fromPath(params.samples)
     .ifEmpty { exit 1, "samples file not found: ${params.samples}" }
     .splitCsv(sep: ',',  skip: 1 )
     .map{ shared_matched_pair_id, unique_subject_id, case_control_status, bam -> [shared_matched_pair_id, unique_subject_id, case_control_status, file(bam).baseName, file(bam)] }
-    .into { samples; bams; bams_kraken }
+    .into { samples; bams }
 
 
 process BWA_sort {
