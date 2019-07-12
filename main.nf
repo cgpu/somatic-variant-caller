@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 log.info "===================================================================="
-log.info "                          Mutect                                    "
+log.info "            Somatic & Germline Variant Calling Pipeline             "
 log.info "===================================================================="
 
 // set threadmem equal to total memory divided by number of threads
@@ -116,7 +116,6 @@ if (params.bed) {
 Channel.fromPath(params.interval_list_path, type: 'file')
        .set {interval_list}
 
-
 process gunzip_dbsnp {
     tag "$dbsnp_gz"
 
@@ -175,7 +174,6 @@ Channel.fromPath(params.samples)
     .map{ shared_matched_pair_id, unique_subject_id, case_control_status, bam -> [shared_matched_pair_id, unique_subject_id, case_control_status, file(bam).baseName, file(bam)] }
     .into { samples; bams }
 
-
 process BAM_sort {
     tag "$bam"
     container 'lifebitai/samtools:latest'
@@ -190,8 +188,7 @@ process BAM_sort {
     samtools index $bam
     samtools view \
     -b $bam \
-    chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr9 chr20 \
-    chr21  > temp.bam && mv temp.bam ${name}.bam
+    chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr9 chr20 chr21  > temp.bam && mv temp.bam ${name}.bam
     samtools sort -o ${name}_mitoless.bam ${name}.bam
     rm ${name}.bam
     """
@@ -357,7 +354,6 @@ process HaplotypeCaller {
 }
 
 
-
 process MergeVCFs {
     tag "${name[0]}.g.vcf"
     publishDir "${params.outdir}/GermlineVariantCalling", mode: 'copy'
@@ -405,7 +401,7 @@ process Mutect2 {
     file(fasta), file(fai), file(dict) from mutect
 
     output:
-    set val("${tumourunique_subject_id}_vs_${unique_subject_id}"), file("${tumourunique_subject_id}_vs_${unique_subject_id}.vcf") into vcf_variant_eval
+    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval
 
     script:
     """
@@ -416,58 +412,6 @@ process Mutect2 {
     -O ${tumourSampleId}_vs_${sampleId}.vcf
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     #-L \${intervalBed} \
-
-    """
-}
-
-if (params.bed) {
-    manta = manta_no_bed.merge(bed)
-} else {
-    manta = manta_no_bed
-}
-
-process Manta {
-    tag {tumourunique_subject_id + "_vs_" + unique_subject_id}
-    container 'maxulysse/sarek:latest'
-    publishDir "${params.outdir}/StructuralVariance/${shared_matched_pair_id}", mode: 'copy'
-
-    input:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai),
-    val(tumourunique_subject_id), val(tumourcase_control_status), val(tumourName), file(tumourBam), file(tumourBai),
-    file(fasta), file(fai), file(dict), file(bed) from manta
-
-    output:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(tumourunique_subject_id), file("*.vcf.gz"), file("*.vcf.gz.tbi") into manta_results
-    
-    script:
-    beforeScript = params.bed ? "bgzip --threads ${task.cpus} -c *.bed > call_targets.bed.gz ; tabix call_targets.bed.gz" : ""
-    options = params.bed ? "--exome --callRegions call_targets.bed.gz" : ""
-    """
-    ${beforeScript}
-    configManta.py \
-    --normalBam ${bam} \
-    --tumorBam ${tumourBam} \
-    --reference ${fasta} \
-    ${options} \
-    --runDir Manta
-
-    python Manta/runWorkflow.py -m local -j ${task.cpus}
-    mv Manta/results/variants/candidateSmallIndels.vcf.gz \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSmallIndels.vcf.gz
-    mv Manta/results/variants/candidateSmallIndels.vcf.gz.tbi \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSmallIndels.vcf.gz.tbi
-    mv Manta/results/variants/candidateSV.vcf.gz \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSV.vcf.gz
-    mv Manta/results/variants/candidateSV.vcf.gz.tbi \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.candidateSV.vcf.gz.tbi
-    mv Manta/results/variants/diploidSV.vcf.gz \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.diploidSV.vcf.gz
-    mv Manta/results/variants/diploidSV.vcf.gz.tbi \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.diploidSV.vcf.gz.tbi
-    mv Manta/results/variants/somaticSV.vcf.gz \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.somaticSV.vcf.gz
-    mv Manta/results/variants/somaticSV.vcf.gz.tbi \
-        Manta_${tumourunique_subject_id}_vs_${unique_subject_id}.somaticSV.vcf.gz.tbi
     """
 }
 
