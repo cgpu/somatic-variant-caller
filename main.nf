@@ -381,7 +381,7 @@ combined_bam = bamsNormal.combine(bamsTumour, by: 0)
 
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
-variant_calling_intervals = intervals_mutect.combine(ariant_calling)
+variant_calling_intervals = intervals_mutect.combine(variant_calling)
 variant_calling_intervals.into{ mutect; manta_no_bed}
 
 
