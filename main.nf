@@ -319,13 +319,13 @@ process RunBamQCrecalibrated {
 interval_list
     .splitText()
     .map { it -> it.trim() }
-    .set { intervals }
+    .into { intervals_haplotypecaller; intervals_mutect }
 
 haplotypecaller_index = fasta_haplotypecaller.merge(fai_haplotypecaller, dict_haplotypecaller, bam_haplotypecaller)
 haplotypecaller = intervals.combine(haplotypecaller_index)
 
 process HaplotypeCaller {
-    tag "$intervals"
+    tag "$intervals_haplotypecaller"
     container 'broadinstitute/gatk:latest'
 
     memory threadmem
@@ -349,7 +349,7 @@ process HaplotypeCaller {
     -O ${name}.g.vcf \
     -I $bam \
     -ERC GVCF \
-    -L $intervals
+    -L $intervals_haplotypecaller
     """
 }
 
@@ -409,9 +409,9 @@ process Mutect2 {
     -R ${fasta}\
     -I ${tumourBam}  -tumor ${tumourName} \
     -I ${bam} -normal ${name} \
-    -O ${tumourSampleId}_vs_${sampleId}.vcf
+    -O ${tumourSampleId}_vs_${sampleId}.vcf \ 
+    -L $intervals_mutect
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
-    #-L \${intervalBed} \
     """
 }
 
