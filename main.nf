@@ -322,7 +322,7 @@ interval_list
     .into { intervals_haplotypecaller; intervals_mutect }
 
 haplotypecaller_index = fasta_haplotypecaller.merge(fai_haplotypecaller, dict_haplotypecaller, bam_haplotypecaller)
-haplotypecaller = intervals.combine(haplotypecaller_index)
+haplotypecaller = intervals_haplotypecaller.combine(haplotypecaller_index)
 
 process HaplotypeCaller {
     tag "$intervals_haplotypecaller"
@@ -331,7 +331,7 @@ process HaplotypeCaller {
     memory threadmem
 
     input:
-    set val(intervals), file(fasta), file(fai), file(dict),
+    set val(intervals_haplotypecaller), file(fasta), file(fai), file(dict),
     val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from haplotypecaller
 
     output:
@@ -387,6 +387,7 @@ combined_bam = bamsNormal.combine(bamsTumour, by: 0)
 
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
+variant_calling = variant_calling.combine(intervals_mutect)
 variant_calling.into{ mutect; manta_no_bed}
 
 
@@ -398,7 +399,7 @@ process Mutect2 {
     input:
     set val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
     val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai),
-    file(fasta), file(fai), file(dict) from mutect
+    file(fasta), file(fai), file(dict), val(intervals_mutect) from mutect
 
     output:
     set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval
