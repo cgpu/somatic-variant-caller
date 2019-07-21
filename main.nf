@@ -410,7 +410,7 @@ process Mutect2 {
     -R ${fasta}\
     -I ${tumourBam}  -tumor ${tumourName} \
     -I ${bam} -normal ${name} \
-    -O ${tumourSampleId}_vs_${sampleId}.vcf \ 
+    -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
