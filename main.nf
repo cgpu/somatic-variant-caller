@@ -114,7 +114,7 @@ if (params.bed) {
 
 //intervals_list 
 Channel.fromPath(params.interval_list_path, type: 'file')
-       .set {interval_list}
+       .into { intervals_haplotypecaller; intervals_mutect }
 
 process gunzip_dbsnp {
     tag "$dbsnp_gz"
@@ -315,12 +315,6 @@ process RunBamQCrecalibrated {
     """
 }
 
-
-interval_list
-    .splitText()
-    .map { it -> it.trim() }
-    .into { intervals_haplotypecaller; intervals_mutect }
-
 haplotypecaller_index = fasta_haplotypecaller.merge(fai_haplotypecaller, dict_haplotypecaller, bam_haplotypecaller)
 haplotypecaller = intervals_haplotypecaller.combine(haplotypecaller_index)
 
@@ -331,7 +325,7 @@ process HaplotypeCaller {
     memory threadmem
 
     input:
-    set val(intervals_haplotypecaller), file(fasta), file(fai), file(dict),
+    set file(intervals_haplotypecaller), file(fasta), file(fai), file(dict),
     val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from haplotypecaller
 
     output:
@@ -360,12 +354,12 @@ process MergeVCFs {
     container 'broadinstitute/gatk:latest'
 
     input:
-    file ('*.g.vcf') from haplotypecaller_gvcf.collect()
-    file ('*.g.vcf.idx') from index.collect()
-    val name from name_mergevcfs.collect()
+    file ('*.g.vcf') from haplotypecaller_gvcf
+    file ('*.g.vcf.idx') from index
+    val name from name_mergevcfs
 
     output:
-    set file("${name[0]}.g.vcf"), file("${name[0]}.g.vcf.idx") into mergevcfs
+    set file("${name}.g.vcf"), file("${name}.g.vcf.idx") into mergevcfs
 
     script:
     """
@@ -375,7 +369,7 @@ process MergeVCFs {
     done
     gatk MergeVcfs \
     --INPUT= input_variant_files.list \
-    --OUTPUT= ${name[0]}.g.vcf
+    --OUTPUT= ${name}.g.vcf
     """
 }
 
@@ -387,8 +381,8 @@ combined_bam = bamsNormal.combine(bamsTumour, by: 0)
 
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
-variant_calling = variant_calling.combine(intervals_mutect)
-variant_calling.into{ mutect; manta_no_bed}
+variant_calling_intervals = intervals_mutect.combine(ariant_calling)
+variant_calling_intervals.into{ mutect; manta_no_bed}
 
 
 process Mutect2 {
@@ -397,9 +391,9 @@ process Mutect2 {
     publishDir "${params.outdir}/Somatic", mode: 'copy'
 
     input:
-    set val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
+    set file(intervals_mutect), val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
     val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai),
-    file(fasta), file(fai), file(dict), val(intervals_mutect) from mutect
+    file(fasta), file(fai), file(dict) from mutect
 
     output:
     set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval
