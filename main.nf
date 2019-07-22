@@ -354,9 +354,10 @@ process MergeVCFs {
     container 'broadinstitute/gatk:latest'
 
     input:
-    file ('*.g.vcf') from haplotypecaller_gvcf
-    file ('*.g.vcf.idx') from index
-    val name from name_mergevcfs
+    file ('*.g.vcf') from haplotypecaller_gvcf.collect()
+    file ('*.g.vcf.idx') from index.collect()
+    val name from name_mergevcfs.collect()
+
 
     output:
     set file("${name}.g.vcf"), file("${name}.g.vcf.idx") into mergevcfs
