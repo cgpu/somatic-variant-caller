@@ -320,6 +320,7 @@ haplotypecaller = intervals_haplotypecaller.combine(haplotypecaller_index)
 
 process HaplotypeCaller {
     tag "$intervals_haplotypecaller"
+    publishDir "${params.outdir}/GermlineVariantCallingUnmerged", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
     memory threadmem
