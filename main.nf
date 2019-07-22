@@ -349,7 +349,7 @@ process HaplotypeCaller {
 
 
 process MergeVCFs {
-    tag "${name[0]}.g.vcf"
+    tag "${name}.g.vcf"
     publishDir "${params.outdir}/GermlineVariantCalling", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
