@@ -400,8 +400,11 @@ process Mutect2 {
 
     script:
     """
-    tumourName_trimmed=`echo \${tumourName%_*}`
-    name_trimmed=`echo \${name%_*}`
+    tumourName_bash=`echo ${tumourName}`
+    name_bash=`echo ${name}`
+
+    tumourName_trimmed=`echo \${tumourName_bash%_*}`
+    name_trimmed=`echo \${name_bash%_*}`
 
     gatk Mutect2 \
     -R ${fasta}\
