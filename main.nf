@@ -402,8 +402,8 @@ process Mutect2 {
     """
     gatk Mutect2 \
     -R ${fasta}\
-    -I ${tumourBam}  -tumor ${tumourName} \
-    -I ${bam} -normal ${name} \
+    -I ${tumourBam}  -tumor ${tumourName%%_*} \
+    -I ${bam} -normal ${name%%_*} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
