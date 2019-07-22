@@ -400,10 +400,13 @@ process Mutect2 {
 
     script:
     """
+    tumourName_trimmed=`echo ${tumourName%_*}`
+    name_trimmed=`echo ${name%_*}`
+    
     gatk Mutect2 \
     -R ${fasta}\
-    -I ${tumourBam}  -tumor ${tumourName%_*} \
-    -I ${bam} -normal ${name%_*} \
+    -I ${tumourBam}  -tumor ${tumourName_trimmed} \
+    -I ${bam} -normal ${name_trimmed} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
