@@ -320,7 +320,7 @@ haplotypecaller = intervals_haplotypecaller.combine(haplotypecaller_index)
 
 process HaplotypeCaller {
     tag "$intervals_haplotypecaller"
-    publishDir "${params.outdir}/GermlineVariantCallingUnmerged", mode: 'copy'
+    publishDir "${params.outdir}/GermlineVariantCalling", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
     memory threadmem
@@ -345,33 +345,6 @@ process HaplotypeCaller {
     -I $bam \
     -ERC GVCF \
     -L $intervals_haplotypecaller
-    """
-}
-
-
-process MergeVCFs {
-    tag "${name}.g.vcf"
-    publishDir "${params.outdir}/GermlineVariantCalling", mode: 'copy'
-    container 'broadinstitute/gatk:latest'
-
-    input:
-    file ('*.g.vcf') from haplotypecaller_gvcf
-    file ('*.g.vcf.idx') from index
-    val name from name_mergevcfs
-
-
-    output:
-    set file("${name}.g.vcf"), file("${name}.g.vcf.idx") into mergevcfs
-
-    script:
-    """
-    ## make list of input variant files
-    for vcf in \$(ls *vcf); do
-    echo \$vcf >> input_variant_files.list
-    done
-    gatk MergeVcfs \
-    --INPUT= input_variant_files.list \
-    --OUTPUT= ${name}.g.vcf
     """
 }
 
