@@ -357,7 +357,7 @@ combined_bam = bamsNormal.combine(bamsTumour, by: 0)
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
 variant_calling_intervals = intervals_mutect.combine(variant_calling)
-variant_calling_intervals.into{ mutect; vcf2maf}
+variant_calling_intervals.into{ mutect; names_for_vcf2maf}
 
 
 process Mutect2 {
@@ -371,7 +371,7 @@ process Mutect2 {
     file(fasta), file(fai), file(dict) from mutect
 
     output:
-    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval
+    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval, vcf_for_vcf2maf
 
     script:
     """
@@ -390,6 +390,9 @@ process Mutect2 {
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
 }
+
+vcf2maf = vcf_for_vcf2maf.combine(names_for_vcf2maf)
+
 
 process multiqc {
     publishDir "${params.outdir}/MultiQC", mode: 'copy'
