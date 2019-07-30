@@ -63,6 +63,22 @@ if (params.golden_indel_idx_gz) {
            .set { golden_indel_idx_gz }
 }
 
+//af_only_gnomad_vcf
+params.af_only_gnomad_vcf = false
+if (params.af_only_gnomad_vcf) {
+    Channel.fromPath(params.golden_indel_idx_gz)
+           .ifEmpty { exit 1, "af_only_gnomad_vcf annotation file not found: ${params.af_only_gnomad_vcf}" }
+           .set { af_only_gnomad_vcf_channel }
+}
+
+//af_only_gnomad_vcf_idx
+params.af_only_gnomad_vcf_idx = false
+if (params.af_only_gnomad_vcf_idx) {
+    Channel.fromPath(params.af_only_gnomad_vcf_idx)
+           .ifEmpty { exit 1, "af_only_gnomad_vcf_idx annotation file not found: ${params.af_only_gnomad_vcf_idx}" }
+           .set { af_only_gnomad_vcf_idx_channel }
+}
+
 //bwa_index_amb
 params.bwa_index_amb = params.genome ? params.genomes[ params.genome ].bwa_index_amb ?: false : false
 if (params.bwa_index_amb) {
@@ -369,6 +385,8 @@ process Mutect2 {
     set file(intervals_mutect), val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
     val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai),
     file(fasta), file(fai), file(dict) from mutect
+    file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel
+    file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
 
     output:
     set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval, vcf_for_vcf2maf
@@ -387,6 +405,8 @@ process Mutect2 {
     -I ${bam} -normal \${name_trimmed} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect
+    --germline-resource $af_only_gnomad_vcf
+    --interval-padding 100
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
 }
