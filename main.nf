@@ -389,7 +389,7 @@ process Mutect2 {
     file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
 
     output:
-    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf"), file("${tumourSampleId}_vs_${sampleId}.stats") into vcf_variant_eval, vcf_for_vcf2maf
+    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf"), file("${tumourSampleId}_vs_${sampleId}.stats") into vcf_variant_eval, vcf_for_vcf2maf, vcf_for_filter_mutect_calls
 
     script:
     """
