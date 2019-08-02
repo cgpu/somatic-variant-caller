@@ -501,7 +501,8 @@ process Mutect2 {
     -L $intervals_mutect \
     --panel-of-normals  $pon_vcf_gz \
     --germline-resource $af_only_gnomad_vcf \
-    --interval-padding 100
+    --interval-padding 100 \
+    --QUIET
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
 }
