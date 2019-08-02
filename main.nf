@@ -454,7 +454,6 @@ process create_somatic_PoN {
     file(ref_dict) from ref_dict_create_somatic_PoN
     file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel_PoN
     file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel_PoN
-    file()
 
     output:
     set file("pon.vcf.gz"), file("pon.vcf.gz.tbi") into create_somatic_PoN_results_channel
