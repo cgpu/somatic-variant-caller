@@ -13,14 +13,14 @@ params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : 
 if (params.fasta) {
     Channel.fromPath(params.fasta)
            .ifEmpty { exit 1, "fasta annotation file not found: ${params.fasta}" }
-           .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; fasta_mutect; fasta_variant_eval }
+           .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; ref_mutect2_tum_only_mode_channel ; ref_for_create_GenomicsDB_channel ; ref_create_somatic_PoN ; fasta_mutect; fasta_variant_eval  }
 }
 // fai
 params.fai = params.genome ? params.genomes[ params.genome ].fai ?: false : false
 if (params.fai) {
     Channel.fromPath(params.fai)
            .ifEmpty { exit 1, "fasta index file not found: ${params.fai}" }
-           .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; fai_variant_eval }
+           .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; ref_index_mutect2_tum_only_mode_channel ; ref_index_for_create_GenomicsDB_channel ; ref_index_create_somatic_PoN ; fai_variant_eval }
 }
 
 // dict
@@ -28,7 +28,7 @@ params.dict = params.genome ? params.genomes[ params.genome ].dict ?: false : fa
 if (params.dict) {
     Channel.fromPath(params.dict)
            .ifEmpty { exit 1, "dict annotation file not found: ${params.dict}" }
-           .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval }
+           .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval ; ref_dict_mutect2_tum_only_mode_channel ; ref_dict_for_create_GenomicsDB_channel ; ref_dict_create_somatic_PoN }
 }
 
 //dbsnp_gz
@@ -68,7 +68,7 @@ params.af_only_gnomad_vcf = false
 if (params.af_only_gnomad_vcf) {
     Channel.fromPath(params.golden_indel_idx_gz)
            .ifEmpty { exit 1, "af_only_gnomad_vcf annotation file not found: ${params.af_only_gnomad_vcf}" }
-           .set { af_only_gnomad_vcf_channel }
+           .set { af_only_gnomad_vcf_channel ; af_only_gnomad_vcf_channel_PoN }
 }
 
 //af_only_gnomad_vcf_idx
@@ -76,7 +76,7 @@ params.af_only_gnomad_vcf_idx = false
 if (params.af_only_gnomad_vcf_idx) {
     Channel.fromPath(params.af_only_gnomad_vcf_idx)
            .ifEmpty { exit 1, "af_only_gnomad_vcf_idx annotation file not found: ${params.af_only_gnomad_vcf_idx}" }
-           .set { af_only_gnomad_vcf_idx_channel }
+           .set { af_only_gnomad_vcf_idx_channel ; af_only_gnomad_vcf_idx_channel_PoN }
 }
 
 //bwa_index_amb
@@ -130,7 +130,7 @@ if (params.bed) {
 
 //intervals_list 
 Channel.fromPath(params.interval_list_path, type: 'file')
-       .into { intervals_haplotypecaller; intervals_mutect }
+       .into { intervals_haplotypecaller; intervals_mutect ;  interval_list_create_GenomicsDB_channel ; interval_list_mutect2_tum_only_mode_channel}
 
 process gunzip_dbsnp {
     tag "$dbsnp_gz"
@@ -375,6 +375,36 @@ ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
 variant_calling_intervals = intervals_mutect.combine(variant_calling)
 variant_calling_intervals.into{ mutect; names_for_vcf2maf}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 process Mutect2 {
