@@ -66,7 +66,7 @@ if (params.golden_indel_idx_gz) {
 //af_only_gnomad_vcf
 params.af_only_gnomad_vcf = false
 if (params.af_only_gnomad_vcf) {
-    Channel.fromPath(params.golden_indel_idx_gz)
+    Channel.fromPath(params.af_only_gnomad_vcf)
            .ifEmpty { exit 1, "af_only_gnomad_vcf annotation file not found: ${params.af_only_gnomad_vcf}" }
            .into { af_only_gnomad_vcf_channel ; af_only_gnomad_vcf_channel_PoN }
 }
