@@ -470,7 +470,7 @@ process create_somatic_PoN {
 }
 
 process Mutect2 {
-    tag "$bam"
+    tag "${tumourSampleId}_vs_${sampleId}.vcf"
     container 'broadinstitute/gatk:latest'
     publishDir "${params.outdir}/Somatic", mode: 'copy'
 
