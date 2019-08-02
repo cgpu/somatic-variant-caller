@@ -368,7 +368,8 @@ bamsNormal = Channel.create()
 bamsTumour = Channel.create()
 
 bam_mutect.choice( bamsTumour, bamsNormal ) { it[2] =~ 1 ? 0 : 1 }
-combined_bam = bamsNormal.combine(bamsTumour, by: 0)
+bamsNormal.into {bamsNormal_PoN ; bamsNormal_mutect}
+combined_bam = bamsNormal_mutect.combine(bamsTumour, by: 0)
 
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
