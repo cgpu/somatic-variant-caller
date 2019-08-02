@@ -384,8 +384,8 @@ process run_mutect2_tumor_only_mode {
     container "broadinstitute/gatk:latest"
 
     input:
-    file(normal_bam) from bamsNormal_PoN
-    file(normal_bai) from bamsNormal_PoN
+    file(normal_bam) from bamsNormal_PoN.collect()
+    file(normal_bai) from bamsNormal_PoN.collect()
     each file(ref) from ref_mutect2_tum_only_mode_channel
     each file(ref_index) from ref_index_mutect2_tum_only_mode_channel
     each file(ref_dict) from ref_dict_mutect2_tum_only_mode_channel
