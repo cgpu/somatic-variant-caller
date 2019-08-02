@@ -377,35 +377,93 @@ variant_calling_intervals = intervals_mutect.combine(variant_calling)
 variant_calling_intervals.into{ mutect; names_for_vcf2maf}
 
 
+process run_mutect2_tumor_only_mode {
 
+    tag "${normal_bam.simpleName.minus('_Normal')}"
+    publishDir "${params.outdir}/MutectTumorOnlyMode", mode: 'copy'
+    container "broadinstitute/gatk:latest"
 
+    input:
+    file(normal_bam) from bamsNormal_PoN
+    file(normal_bai) from bamsNormal_PoN
+    each file(ref) from ref_mutect2_tum_only_mode_channel
+    each file(ref_index) from ref_index_mutect2_tum_only_mode_channel
+    each file(ref_dict) from ref_dict_mutect2_tum_only_mode_channel
+    each file(intervals) from interval_list_mutect2_tum_only_mode_channel
 
+    output:
+    file('*.vcf.gz') into vcf_for_create_GenomicsDB_channel
+    file('*.vcf.gz.tbi') into vcf_tbi_for_create_GenomicsDB_channel
 
+    script:
+    """
+    gatk Mutect2 \
+    -R ${ref} \
+    -I ${normal_bam} -normal ${normal_bam.simpleName.minus('_Normal')} \
+    --max-mnp-distance 0 \
+    -O ${normal_bam.baseName}.vcf.gz \
+    -L $intervals \
+    --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'
+    """
+}
 
+process create_GenomicsDB {
 
+    tag "all_the_vcfs"
+    publishDir "${params.outdir}/GenomicsDBImport", mode: 'copy'
+    container "broadinstitute/gatk:latest"
 
+    input:
+    file("*") from vcf_for_create_GenomicsDB_channel.collect()
+    file("*") from vcf_tbi_for_create_GenomicsDB_channel.collect()
+    file(ref) from ref_for_create_GenomicsDB_channel
+    file(ref_index) from ref_index_for_create_GenomicsDB_channel
+    file(ref_dict) from ref_dict_for_create_GenomicsDB_channel
+    file(intervals) from interval_list_create_GenomicsDB_channel
 
+    output:
+    file("pon_db") into pon_db_for_create_somatic_PoN
 
+    shell:
+    '''
+    echo -n "gatk GenomicsDBImport -R !{ref} --genomicsdb-workspace-path pon_db " > create_GenomicsDB.sh
+    for vcf in $(ls *.vcf.gz); do
+    echo -n "-V $vcf " >> create_GenomicsDB.sh
+    done
+    echo -n "-L !{intervals}" --merge-input-intervals --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true' >> create_GenomicsDB.sh
+    chmod ugo+xr create_GenomicsDB.sh
+    bash create_GenomicsDB.sh
+    chmod -R ugo+xrw pon_db
+    '''
+}
 
+process create_somatic_PoN {
+    
+    tag "$af_only_gnomad_vcf"
+    publishDir "${params.outdir}/CreateSomaticPanelOfNormals", mode: 'copy'
+    container "broadinstitute/gatk:latest"
 
+    input:
+    file(pon_db) from pon_db_for_create_somatic_PoN
+    file(ref) from ref_create_somatic_PoN
+    file(ref_index) from ref_index_create_somatic_PoN
+    file(ref_dict) from ref_dict_create_somatic_PoN
+    file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel
+    file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
+    file()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    output:
+    set file("pon.vcf.gz"), file("pon.vcf.gz.tbi") into create_somatic_PoN_results_channel
+    
+    script:
+    """
+    gatk CreateSomaticPanelOfNormals \
+    -R $ref \
+    --germline-resource $af_only_gnomad_vcf \
+    -V gendb://$pon_db \
+    -O pon.vcf.gz  
+    """
+}
 
 process Mutect2 {
     tag "$bam"
@@ -418,6 +476,7 @@ process Mutect2 {
     file(fasta), file(fai), file(dict) from mutect
     file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel
     file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
+    set file(pon_vcf_gz), file(pon_vcf_gz_tbi) from create_somatic_PoN_results_channel
 
     output:
     set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf"),  file("${tumourSampleId}_vs_${sampleId}.vcf.idx"), file("${tumourSampleId}_vs_${sampleId}.stats") into vcf_variant_eval, vcf_for_vcf2maf, vcf_for_filter_mutect_calls
@@ -436,6 +495,7 @@ process Mutect2 {
     -I ${bam} -normal \${name_trimmed} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect
+    --panel-of-normals  $pon_vcf_gz
     --germline-resource $af_only_gnomad_vcf
     --interval-padding 100
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
