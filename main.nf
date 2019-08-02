@@ -499,7 +499,7 @@ process Mutect2 {
     -I ${bam} -normal \${name_trimmed} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect
-    --panel-of-normals  $pon_vcf_gz
+    -pon  $pon_vcf_gz
     --germline-resource $af_only_gnomad_vcf
     --interval-padding 100
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
