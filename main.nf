@@ -483,7 +483,7 @@ process Mutect2 {
     set file(pon_vcf_gz), file(pon_vcf_gz_tbi) from create_somatic_PoN_results_channel
 
     output:
-    set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf"),  file("${tumourSampleId}_vs_${sampleId}.vcf.idx"), file("${tumourSampleId}_vs_${sampleId}.stats") into vcf_variant_eval, vcf_for_vcf2maf, vcf_for_filter_mutect_calls
+    file("*")
 
     script:
     """
@@ -502,7 +502,7 @@ process Mutect2 {
     --panel-of-normals  $pon_vcf_gz \
     --germline-resource $af_only_gnomad_vcf \
     --interval-padding 100 \
-    --QUIET &> mutect_output.txt
+    --QUIET
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
 }
