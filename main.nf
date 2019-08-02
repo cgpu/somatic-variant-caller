@@ -201,11 +201,11 @@ process BAM_sort {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc
 
     """
-    samtools index -@ 4 $bam
-    samtools view -@ 4\
+    samtools index $bam
+    samtools view \
     -b $bam \
-    chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr9 chr20 chr21 chr22  > temp.bam && mv temp.bam ${name}.bam
-    samtools sort -@ 4 -o ${name}_mitoless.bam ${name}.bam 
+    chr21 chr22  > temp.bam && mv temp.bam ${name}.bam
+    samtools sort -o ${name}_mitoless.bam ${name}.bam 
     rm ${name}.bam
     """
 }
