@@ -383,7 +383,7 @@ variant_calling_intervals.into{ mutect; names_for_vcf2maf}
 
 process run_mutect2_tumor_only_mode {
 
-    tag "${normal_bam.simpleName.minus('_Normal')}"
+    tag "${normal_bam.simpleName.minus('_Normal').minus('_bqsr')}"
     publishDir "${params.outdir}/MutectTumorOnlyMode", mode: 'copy'
     container "broadinstitute/gatk:latest"
 
