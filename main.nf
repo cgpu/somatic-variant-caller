@@ -371,7 +371,7 @@ bam_mutect.choice( bamsTumour, bamsNormal ) { it[2] =~ 1 ? 0 : 1 }
 bamsNormal.into {bamsNormal_PoN ; bamsNormal_mutect}
 combined_bam = bamsNormal_mutect.combine(bamsTumour, by: 0)
 
-bamsNormal_PoN.into {bamsNormal_PoN_bam_channel ; bamsNormal_PoN_bai_channel}
+bamsNormal_PoN.into {bamsNormal_PoN_bam ; bamsNormal_PoN_bai}
 bamsNormal_PoN_bam.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
 bamsNormal_PoN_bai.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
 
@@ -388,8 +388,8 @@ process run_mutect2_tumor_only_mode {
     container "broadinstitute/gatk:latest"
 
     input:
-    file(normal_bam) from bamsNormal_PoN
-    file(normal_bai) from bamsNormal_PoN
+    file(normal_bam) from bamsNormal_PoN_bam
+    file(normal_bai) from bamsNormal_PoN_bai
     each file(ref) from ref_mutect2_tum_only_mode_channel
     each file(ref_index) from ref_index_mutect2_tum_only_mode_channel
     each file(ref_dict) from ref_dict_mutect2_tum_only_mode_channel
