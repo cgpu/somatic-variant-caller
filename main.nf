@@ -483,7 +483,7 @@ process Mutect2 {
     set file(pon_vcf_gz), file(pon_vcf_gz_tbi) from create_somatic_PoN_results_channel
 
     output:
-    file("*")
+    file('*') into vcf_variant_eval, vcf_for_vcf2maf, vcf_for_filter_mutect_calls
 
     script:
     """
