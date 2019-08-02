@@ -401,9 +401,10 @@ process run_mutect2_tumor_only_mode {
 
     script:
     """
+
     gatk Mutect2 \
     -R ${ref} \
-    -I ${normal_bam} -normal ${normal_bam.simpleName.minus('_Normal')} \
+    -I ${normal_bam} -normal ${normal_bam.simpleName.minus('_Normal').minus('_bqsr')} \
     --max-mnp-distance 0 \
     -O ${normal_bam.baseName}.vcf.gz \
     -L $intervals \
