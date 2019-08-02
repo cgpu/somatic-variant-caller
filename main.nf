@@ -68,7 +68,7 @@ params.af_only_gnomad_vcf = false
 if (params.af_only_gnomad_vcf) {
     Channel.fromPath(params.golden_indel_idx_gz)
            .ifEmpty { exit 1, "af_only_gnomad_vcf annotation file not found: ${params.af_only_gnomad_vcf}" }
-           .set { af_only_gnomad_vcf_channel ; af_only_gnomad_vcf_channel_PoN }
+           .into { af_only_gnomad_vcf_channel ; af_only_gnomad_vcf_channel_PoN }
 }
 
 //af_only_gnomad_vcf_idx
@@ -76,7 +76,7 @@ params.af_only_gnomad_vcf_idx = false
 if (params.af_only_gnomad_vcf_idx) {
     Channel.fromPath(params.af_only_gnomad_vcf_idx)
            .ifEmpty { exit 1, "af_only_gnomad_vcf_idx annotation file not found: ${params.af_only_gnomad_vcf_idx}" }
-           .set { af_only_gnomad_vcf_idx_channel ; af_only_gnomad_vcf_idx_channel_PoN }
+           .into { af_only_gnomad_vcf_idx_channel ; af_only_gnomad_vcf_idx_channel_PoN }
 }
 
 //bwa_index_amb
