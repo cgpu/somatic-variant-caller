@@ -371,9 +371,9 @@ bam_mutect.choice( bamsTumour, bamsNormal ) { it[2] =~ 1 ? 0 : 1 }
 bamsNormal.into {bamsNormal_PoN ; bamsNormal_mutect}
 combined_bam = bamsNormal_mutect.combine(bamsTumour, by: 0)
 
-bamsNormal_PoN.into {bamsNormal_PoN_bam ; bamsNormal_PoN_bai}
-bamsNormal_PoN_bam.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
-bamsNormal_PoN_bai.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
+bamsNormal_PoN.into {bamsNormal_PoN_bam_ ; bamsNormal_PoN_bai_ }
+bamsNormal_PoN_bam = bamsNormal_PoN_bam_.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
+bamsNormal_PoN_bai = bamsNormal_PoN_bai_.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
 
 ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
 variant_calling = combined_bam.combine(ref_mutect)
