@@ -487,9 +487,9 @@ process Mutect2 {
     each file(pon_vcf_gz_tbi) from pon_vcf_gz_tbi_for_PoN_results_channel
 
     output:
-    file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval, vcf_for_filter_mutect_calls
-    file("${tumourSampleId}_vs_${sampleId}.vcf.idx") into idx_vcf_variant_eval, idx_vcf_for_filter_mutect_calls
-    file("${tumourSampleId}_vs_${sampleId}.vcf.stats") into stats_variant_eval, stats_vcf_for_filter_mutect_calls
+    set file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval, vcf_for_filter_mutect_calls
+    set file("${tumourSampleId}_vs_${sampleId}.vcf.idx") into idx_vcf_variant_eval, idx_vcf_for_filter_mutect_calls
+    set sfile("${tumourSampleId}_vs_${sampleId}.vcf.stats") into stats_variant_eval, stats_vcf_for_filter_mutect_calls
 
     script:
     """
@@ -510,6 +510,26 @@ process Mutect2 {
     --interval-padding 100 
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
+}
+    
+process FilterMutectCalls {
+
+    tag "${unfiltered_vcf}"
+    container 'broadinstitute/gatk:latest'
+    publishDir "${params.outdir}/FilterMutect2Calls", mode: 'copy'
+
+    input:
+    file(unfiltered_vcf) from vcf_for_filter_mutect_calls.collect()
+    file(unfiltered_vcf_idx) from idx_vcf_for_filter_mutect_calls.collect()
+    file(unfiltered_vcf_stats) from stats_vcf_for_filter_mutect_calls.collect()
+
+    script:
+    """
+    gatk FilterMutectCalls \
+    -V $unfiltered_vcf \
+    -O "${unfiltered_vcf}.filtered.vcf"
+    #-contamination-table contamination.table
+   """
 }
 
 process multiqc {
