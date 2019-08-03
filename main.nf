@@ -13,14 +13,14 @@ params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : 
 if (params.fasta) {
     Channel.fromPath(params.fasta)
            .ifEmpty { exit 1, "fasta annotation file not found: ${params.fasta}" }
-           .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; ref_mutect2_tum_only_mode_channel ; ref_for_create_GenomicsDB_channel ; ref_create_somatic_PoN ; fasta_mutect; fasta_variant_eval ; fasta_filter_mutect_calls  }
+           .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; ref_mutect2_tum_only_mode_channel ; ref_for_create_GenomicsDB_channel ; ref_create_somatic_PoN ; fasta_mutect; fasta_variant_eval ; fasta_filter_mutect_calls ; fasta_variant_filtration }
 }
 // fai
 params.fai = params.genome ? params.genomes[ params.genome ].fai ?: false : false
 if (params.fai) {
     Channel.fromPath(params.fai)
            .ifEmpty { exit 1, "fasta index file not found: ${params.fai}" }
-           .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; ref_index_mutect2_tum_only_mode_channel ; ref_index_for_create_GenomicsDB_channel ; ref_index_create_somatic_PoN ; fai_variant_eval ; fai_filter_mutect_calls}
+           .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; ref_index_mutect2_tum_only_mode_channel ; ref_index_for_create_GenomicsDB_channel ; ref_index_create_somatic_PoN ; fai_variant_eval ; fai_filter_mutect_calls ; fai_variant_filtration}
 }
 
 // dict
@@ -28,7 +28,7 @@ params.dict = params.genome ? params.genomes[ params.genome ].dict ?: false : fa
 if (params.dict) {
     Channel.fromPath(params.dict)
            .ifEmpty { exit 1, "dict annotation file not found: ${params.dict}" }
-           .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval ; ref_dict_mutect2_tum_only_mode_channel ; ref_dict_for_create_GenomicsDB_channel ; ref_dict_create_somatic_PoN ; dict_filter_mutect_calls}
+           .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval ; ref_dict_mutect2_tum_only_mode_channel ; ref_dict_for_create_GenomicsDB_channel ; ref_dict_create_somatic_PoN ; dict_filter_mutect_calls ; dict_variant_filtration}
 }
 
 //dbsnp_gz
@@ -527,8 +527,8 @@ process FilterMutectCalls {
     each file(dict) from dict_filter_mutect_calls
 
     output:
-    file("*vcf") into vcf_filtered_for_vcf2maf, vcf_filtered_for_variant_filtration
-    file("*vcf.idx") into idx_vcf_filtered_for_vcf2maf, idx_vcf_filtered_for_variant_filtration
+    file("*vcf") into vcf_filtered_for_variant_filtration
+    file("*vcf.idx") into idx_vcf_filtered_for_variant_filtration
     file("*filteringStats.tsv") into filterStats_vcf_filtered_for_vcf2maf
  
     script:
@@ -538,6 +538,37 @@ process FilterMutectCalls {
     -V $unfiltered_vcf \
     -O "${unfiltered_vcf.minus('.vcf')}.filtered.vcf"
     #-contamination-table contamination.table
+   """
+}
+
+process VariantFiltration {
+
+    tag "${filtered_vcf}"
+    container 'broadinstitute/gatk:latest'
+    publishDir "${params.outdir}/VariantFiltration", mode: 'copy'
+
+    input:
+    file(filtered_vcf) from vcf_filtered_for_variant_filtration
+    file(filtered_vcf_idx) from idx_vcf_filtered_for_variant_filtration
+    each file(fasta) from fasta_variant_filtration
+    each file(fai) from fai_variant_filtration
+    each file(dict) from dict_variant_filtration
+
+    output:
+    file("*") into vcf_twice_filtered_for_vcf2maf
+ 
+    script:
+    """
+    gatk FilterMutectCalls \
+    -R ${fasta} \
+    -V $filtered_vcf \
+    -O "${filtered_vcf.minus('.vcf')}.twice.filtered.vcf" \
+    --filterExpression "VariantAlleleCount < 3" \
+    --filterExpression "VariantAlleleCountControl > 1" \
+    --filterExpression "VariantBaseQualMedian < 25.0" \
+    --filterExpression "VariantMapQualMedian < 40.0" \
+    --filterExpression "MapQualDiffMedian < -5.0 || MapQualDiffMedian > 5.0" \
+    --filterExpression "LowMapQual > 0.05"
    """
 }
 
