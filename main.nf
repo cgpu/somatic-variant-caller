@@ -536,7 +536,7 @@ process FilterMutectCalls {
     gatk FilterMutectCalls \
     -R ${fasta} \
     -V $unfiltered_vcf \
-    -O "${unfiltered_vcf.minus('.vcf')}.filtered.vcf"
+    -O "${unfiltered_vcf}.filtered.vcf"
     #-contamination-table contamination.table
    """
 }
@@ -562,13 +562,13 @@ process VariantFiltration {
     gatk FilterMutectCalls \
     -R ${fasta} \
     -V $filtered_vcf \
-    -O "${filtered_vcf.minus('.vcf')}.twice.filtered.vcf" \
-    --filterExpression "VariantAlleleCount < 3" \
-    --filterExpression "VariantAlleleCountControl > 1" \
-    --filterExpression "VariantBaseQualMedian < 25.0" \
-    --filterExpression "VariantMapQualMedian < 40.0" \
-    --filterExpression "MapQualDiffMedian < -5.0 || MapQualDiffMedian > 5.0" \
-    --filterExpression "LowMapQual > 0.05"
+    -O "${filtered_vcf}.twice.filtered.vcf" \
+    --filterName VariantAlleleCount    --filterExpression "VariantAlleleCount < 3" \
+    --filterName VariantCountControl   --filterExpression "VariantAlleleCountControl > 1" \
+    --filterName VariantBaseQualMedian --filterExpression "VariantBaseQualMedian < 25.0" \
+    --filterName VariantMapQualMedian  --filterExpression "VariantMapQualMedian < 40.0" \
+    --filterName MapQualDiffMedian     --filterExpression "MapQualDiffMedian < -5.0 || MapQualDiffMedian > 5.0" \
+    --filterName LowMapQual            --filterExpression "LowMapQual > 0.05"
    """
 }
 
