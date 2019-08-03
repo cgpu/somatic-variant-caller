@@ -511,26 +511,6 @@ process Mutect2 {
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
 }
-    
-process FilterMutectCalls {
-
-    tag "${unfiltered_vcf}"
-    container 'broadinstitute/gatk:latest'
-    publishDir "${params.outdir}/FilterMutect2Calls", mode: 'copy'
-
-    input:
-    file(unfiltered_vcf) from vcf_for_filter_mutect_calls.collect()
-    file(unfiltered_vcf_idx) from idx_vcf_for_filter_mutect_calls.collect()
-    file(unfiltered_vcf_stats) from stats_vcf_for_filter_mutect_calls.collect()
-
-    script:
-    """
-    gatk FilterMutectCalls \
-    -V $unfiltered_vcf \
-    -O "${unfiltered_vcf}.filtered.vcf"
-    #-contamination-table contamination.table
-   """
-}
 
 process multiqc {
     publishDir "${params.outdir}/MultiQC", mode: 'copy'
