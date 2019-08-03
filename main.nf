@@ -568,7 +568,8 @@ process VariantFiltration {
     --filterName VariantBaseQualMedian --filterExpression "VariantBaseQualMedian < 25.0" \
     --filterName VariantMapQualMedian  --filterExpression "VariantMapQualMedian < 40.0" \
     --filterName MapQualDiffMedian     --filterExpression "MapQualDiffMedian < -5.0 || MapQualDiffMedian > 5.0" \
-    --filterName LowMapQual            --filterExpression "LowMapQual > 0.05"
+    --filterName LowMapQual            --filterExpression "LowMapQual > 0.05" \
+    --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'
    """
 }
 
