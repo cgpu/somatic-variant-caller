@@ -475,7 +475,7 @@ process Mutect2 {
     publishDir "${params.outdir}/Somatic", mode: 'copy'
 
     input:
-    set file(intervals_mutect), val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
+    set val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
     val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai) from combined_bam_mutect
     each file(fasta) from fasta_mutect
     each file(fai) from fai_mutect
