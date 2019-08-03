@@ -358,8 +358,8 @@ process HaplotypeCaller {
     gatk HaplotypeCaller \
     --java-options -Xmx${task.memory.toMega()}M \
     -R $fasta \
-    -O ${name}.g.vcf \
-    -I $"${name}_bqsr.bam" \
+    -O "${name}.g.vcf" \
+    -I "${name}_bqsr.bam" \
     -ERC GVCF \
     -L $intervals
     """
