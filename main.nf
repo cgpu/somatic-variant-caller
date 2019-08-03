@@ -409,7 +409,7 @@ process run_mutect2_tumor_only_mode {
 
 process create_GenomicsDB {
 
-    tag "all_the_vcfs"
+    tag "all_the_Normals_vcfs!"
     publishDir "${params.outdir}/GenomicsDBImport", mode: 'copy'
     container "broadinstitute/gatk:latest"
 
