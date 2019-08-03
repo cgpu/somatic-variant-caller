@@ -468,7 +468,7 @@ process create_somatic_PoN {
 combined_bam.into {combined_bam_to_view ; combined_bam_mutect }
 combined_bam_to_view.view()
 
-    process Mutect2 {
+process Mutect2 {
 
     tag "${tumourSampleId}_vs_${sampleId}.vcf"
     container 'broadinstitute/gatk:latest'
@@ -510,11 +510,12 @@ combined_bam_to_view.view()
     --interval-padding 100 
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
-}
+    }
 
-    process FilterMutectCalls {
+    
+process FilterMutectCalls {
 
-    tag "${unfiltered_vcf}-FMC"
+    tag "${unfiltered_vcf}"
     container 'broadinstitute/gatk:latest'
     publishDir "${params.outdir}/FilterMutect2Calls", mode: 'copy'
 
@@ -527,7 +528,7 @@ combined_bam_to_view.view()
     """
     gatk FilterMutectCalls \
     -V $unfiltered_vcf \
-    -O "${unfiltered_vcf.simpleName()}.filtered.vcf"
+    -O "${unfiltered_vcf}.filtered.vcf"
     #-contamination-table contamination.table
    """
 }
