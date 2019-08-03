@@ -487,9 +487,9 @@ process Mutect2 {
     each file(pon_vcf_gz_tbi) from pon_vcf_gz_tbi_for_PoN_results_channel
 
     output:
-    set file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval, vcf_for_filter_mutect_calls
-    set file("${tumourSampleId}_vs_${sampleId}.vcf.idx") into idx_vcf_variant_eval, idx_vcf_for_filter_mutect_calls
-    set file("${tumourSampleId}_vs_${sampleId}.vcf.stats") into stats_variant_eval, stats_vcf_for_filter_mutect_calls
+    file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_for_filter_mutect_calls
+    file("${tumourSampleId}_vs_${sampleId}.vcf.idx") into idx_vcf_for_filter_mutect_calls
+    file("${tumourSampleId}_vs_${sampleId}.vcf.stats") into stats_vcf_for_filter_mutect_calls
 
     script:
     """
