@@ -519,9 +519,9 @@ process FilterMutectCalls {
     publishDir "${params.outdir}/FilterMutect2Calls", mode: 'copy'
 
     input:
-    file(unfiltered_vcf) from vcf_for_filter_mutect_calls.collect()
-    file(unfiltered_vcf_idx) from idx_vcf_for_filter_mutect_calls.collect()
-    file(unfiltered_vcf_stats) from stats_vcf_for_filter_mutect_calls.collect()
+    file(unfiltered_vcf) from vcf_for_filter_mutect_calls
+    file(unfiltered_vcf_idx) from idx_vcf_for_filter_mutect_calls
+    file(unfiltered_vcf_stats) from stats_vcf_for_filter_mutect_calls
 
     script:
     """
