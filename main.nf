@@ -510,9 +510,6 @@ process Mutect2 {
     """
 }
 
-vcf2maf = vcf_for_vcf2maf.combine(names_for_vcf2maf)
-
-
 process multiqc {
     publishDir "${params.outdir}/MultiQC", mode: 'copy'
     container 'ewels/multiqc:v1.7'
