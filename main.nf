@@ -564,12 +564,6 @@ process VariantFiltration {
     -V $filtered_vcf \
     -O "${filtered_vcf}.twice.filtered.vcf" \
     --filterName VariantAlleleCount    --filterExpression "VariantAlleleCount < 3" \
-    --filterName VariantCountControl   --filterExpression "VariantAlleleCountControl > 1" \
-    --filterName VariantBaseQualMedian --filterExpression "VariantBaseQualMedian < 25.0" \
-    --filterName VariantMapQualMedian  --filterExpression "VariantMapQualMedian < 40.0" \
-    --filterName MapQualDiffMedian     --filterExpression "MapQualDiffMedian < -5.0 || MapQualDiffMedian > 5.0" \
-    --filterName LowMapQual            --filterExpression "LowMapQual > 0.05" \
-    -NoRequireSCBothEnds	\
     --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'
    """
 }
