@@ -331,19 +331,20 @@ process RunBamQCrecalibrated {
     """
 }
 
-haplotypecaller_index = fasta_haplotypecaller.merge(fai_haplotypecaller, dict_haplotypecaller, bam_haplotypecaller)
-haplotypecaller = intervals_haplotypecaller.combine(haplotypecaller_index)
-
 process HaplotypeCaller {
-    tag "$intervals_haplotypecaller"
+    tag "${name}_bqsr.bam"
     publishDir "${params.outdir}/GermlineVariantCalling", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
     memory threadmem
 
     input:
-    set file(intervals_haplotypecaller), file(fasta), file(fai), file(dict),
-    val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from haplotypecaller.collect()
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_bqsr.bam"), file("${name}_bqsr.bai") from bam_haplotypecaller
+    each file(fasta) from fasta_haplotypecaller
+    each file(fai) from fai_haplotypecaller
+    each file(dict) from dict_haplotypecaller
+    each file(intervals) from intervals_haplotypecaller
+
 
     output:
     file("${name}.g.vcf") into haplotypecaller_gvcf
@@ -358,9 +359,9 @@ process HaplotypeCaller {
     --java-options -Xmx${task.memory.toMega()}M \
     -R $fasta \
     -O ${name}.g.vcf \
-    -I $bam \
+    -I $"${name}_bqsr.bam" \
     -ERC GVCF \
-    -L $intervals_haplotypecaller
+    -L $intervals
     """
 }
 
