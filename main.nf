@@ -510,8 +510,7 @@ process Mutect2 {
     --interval-padding 100 
     #gatk --java-options "-Xmx\${task.memory.toGiga()}g" \
     """
-    }
-
+}
     
 process FilterMutectCalls {
 
