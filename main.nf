@@ -13,14 +13,14 @@ params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : 
 if (params.fasta) {
     Channel.fromPath(params.fasta)
            .ifEmpty { exit 1, "fasta annotation file not found: ${params.fasta}" }
-           .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; ref_mutect2_tum_only_mode_channel ; ref_for_create_GenomicsDB_channel ; ref_create_somatic_PoN ; fasta_mutect; fasta_variant_eval ; fasta_filter_mutect_calls ; fasta_variant_filtration }
+           .into { fasta_bwa; fasta_baserecalibrator; fasta_haplotypecaller; ref_mutect2_tum_only_mode_channel ; ref_for_create_GenomicsDB_channel ; ref_create_somatic_PoN ; fasta_mutect; fasta_variant_eval ; fasta_filter_mutect_calls ; fasta_vcf2maf }
 }
 // fai
 params.fai = params.genome ? params.genomes[ params.genome ].fai ?: false : false
 if (params.fai) {
     Channel.fromPath(params.fai)
            .ifEmpty { exit 1, "fasta index file not found: ${params.fai}" }
-           .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; ref_index_mutect2_tum_only_mode_channel ; ref_index_for_create_GenomicsDB_channel ; ref_index_create_somatic_PoN ; fai_variant_eval ; fai_filter_mutect_calls ; fai_variant_filtration}
+           .into { fai_mutect; fai_baserecalibrator; fai_haplotypecaller; ref_index_mutect2_tum_only_mode_channel ; ref_index_for_create_GenomicsDB_channel ; ref_index_create_somatic_PoN ; fai_variant_eval ; fai_filter_mutect_calls ; fai_vcf2maf}
 }
 
 // dict
@@ -28,7 +28,7 @@ params.dict = params.genome ? params.genomes[ params.genome ].dict ?: false : fa
 if (params.dict) {
     Channel.fromPath(params.dict)
            .ifEmpty { exit 1, "dict annotation file not found: ${params.dict}" }
-           .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval ; ref_dict_mutect2_tum_only_mode_channel ; ref_dict_for_create_GenomicsDB_channel ; ref_dict_create_somatic_PoN ; dict_filter_mutect_calls ; dict_variant_filtration}
+           .into { dict_interval; dict_mutect; dict_baserecalibrator; dict_haplotypecaller; dict_variant_eval ; ref_dict_mutect2_tum_only_mode_channel ; ref_dict_for_create_GenomicsDB_channel ; ref_dict_create_somatic_PoN ; dict_filter_mutect_calls ; dict_vcf2maf}
 }
 
 //dbsnp_gz
@@ -527,8 +527,8 @@ process FilterMutectCalls {
     each file(dict) from dict_filter_mutect_calls
 
     output:
-    file("*vcf") into vcf_filtered_for_variant_filtration
-    file("*vcf.idx") into idx_vcf_filtered_for_variant_filtration
+    file("*vcf") into vcf_filtered_for_vcf2maf
+    file("*vcf.idx") into idx_vcf_filtered_for_vcf2maf
     file("*filteringStats.tsv") into filterStats_vcf_filtered_for_vcf2maf
  
     script:
@@ -541,31 +541,46 @@ process FilterMutectCalls {
    """
 }
 
-process VariantFiltration {
+// TODO: Fix this flaky quick fix for T-N ID with more robust pattern matching
+
+process Vcf2maf {
 
     tag "${filtered_vcf}"
-    container 'broadinstitute/gatk:latest'
-    publishDir "${params.outdir}/VariantFiltration", mode: 'copy'
+    container 'levim/vcf2maf:1.0'
+    publishDir "${params.outdir}/Vcf2maf", mode: 'copy'
 
     input:
-    file(filtered_vcf) from vcf_filtered_for_variant_filtration
-    file(filtered_vcf_idx) from idx_vcf_filtered_for_variant_filtration
-    each file(fasta) from fasta_variant_filtration
-    each file(fai) from fai_variant_filtration
-    each file(dict) from dict_variant_filtration
+    file(filtered_vcf) from vcf_filtered_for_vcf2maf
+    file(filtered_vcf_idx) from idx_vcf_filtered_for_vcf2maf
+    each file(fasta) from fasta_vcf2maf
+    each file(fai) from fai_vcf2maf
+    each file(dict) from dict_vcf2maf
 
     output:
-    file("*") into vcf_twice_filtered_for_vcf2maf
+    file("*") into vcf2maf_annotated_files_channel
  
     script:
     """
-    gatk FilterMutectCalls \
-    -R ${fasta} \
-    -V $filtered_vcf \
-    -O "${filtered_vcf}.twice.filtered.vcf" \
-    --filterName VariantAlleleCount    --filterExpression "VariantAlleleCount < 3" \
-    --java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true'
-   """
+    filename=`echo ${filtered_vcf}`
+
+    tumourID=`echo \$filename | cut -f 1 -d '_'`
+    normalID=`echo \$filename | cut -f 4 -d '_'`
+
+    perl /opt/vcf2maf/vcf2maf.pl \
+    --input-vcf $filtered_vcf \
+    --output-maf maf  \
+    --tumor-id \${tumourID} \
+    --normal-id \${normalID} \
+    --ref-fasta /vepdata/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa \
+    --ncbi-build  GRCh37 \
+    --filter-vcf /vepdata/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz \
+    --vep-path /opt/variant_effect_predictor_89/ensembl-tools-release-89/scripts/variant_effect_predictor \
+    --vep-data /vepdata/ \
+    --vep-forks 2 \
+    --buffer-size 200 \
+    --species homo_sapiens     \
+    --cache-version 89
+    """
 }
 
 process multiqc {
