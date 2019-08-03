@@ -343,7 +343,7 @@ process HaplotypeCaller {
 
     input:
     set file(intervals_haplotypecaller), file(fasta), file(fai), file(dict),
-    val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from haplotypecaller
+    val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam), file(bai) from haplotypecaller.collect()
 
     output:
     file("${name}.g.vcf") into haplotypecaller_gvcf
@@ -478,7 +478,7 @@ process Mutect2 {
     input:
     set file(intervals_mutect), val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
     val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai),
-    file(fasta), file(fai), file(dict) from mutect
+    file(fasta), file(fai), file(dict) from mutect.collect()
     file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel
     file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
     set file(pon_vcf_gz), file(pon_vcf_gz_tbi) from create_somatic_PoN_results_channel
