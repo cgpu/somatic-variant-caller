@@ -527,14 +527,16 @@ process FilterMutectCalls {
     each file(dict) from dict_filter_mutect_calls
 
     output:
-    file("*") into vcf_filtered_for_vcf2maf
+    file("*vcf") into vcf_filtered_for_vcf2maf
+    file("*vcf.idx") into idx_vcf_filtered_for_vcf2maf
+    file("*filteringStats.tsv") into filterStats_vcf_filtered_for_vcf2maf
  
     script:
     """
     gatk FilterMutectCalls \
     -R ${fasta} \
     -V $unfiltered_vcf \
-    -O "${unfiltered_vcf}.filtered.vcf" 
+    -O "${unfiltered_vcf.baseName}.filtered.vcf"
     #-contamination-table contamination.table
    """
 }
