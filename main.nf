@@ -536,7 +536,7 @@ process FilterMutectCalls {
     gatk FilterMutectCalls \
     -R ${fasta} \
     -V $unfiltered_vcf \
-    -O "${unfiltered_vcf.baseName()}.filtered.vcf"
+    -O "${unfiltered_vcf.minus('.vcf')}.filtered.vcf"
     #-contamination-table contamination.table
    """
 }
