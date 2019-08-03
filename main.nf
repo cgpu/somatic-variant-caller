@@ -526,6 +526,9 @@ process FilterMutectCalls {
     each file(fai) from fai_filter_mutect_calls
     each file(dict) from dict_filter_mutect_calls
 
+    output:
+    file("*") into vcf_filtered_for_vcf2maf
+ 
     script:
     """
     gatk FilterMutectCalls \
