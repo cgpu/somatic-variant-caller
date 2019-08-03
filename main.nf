@@ -489,7 +489,7 @@ process Mutect2 {
     output:
     set file("${tumourSampleId}_vs_${sampleId}.vcf") into vcf_variant_eval, vcf_for_filter_mutect_calls
     set file("${tumourSampleId}_vs_${sampleId}.vcf.idx") into idx_vcf_variant_eval, idx_vcf_for_filter_mutect_calls
-    set sfile("${tumourSampleId}_vs_${sampleId}.vcf.stats") into stats_variant_eval, stats_vcf_for_filter_mutect_calls
+    set file("${tumourSampleId}_vs_${sampleId}.vcf.stats") into stats_variant_eval, stats_vcf_for_filter_mutect_calls
 
     script:
     """
