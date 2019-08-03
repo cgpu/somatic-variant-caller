@@ -376,12 +376,6 @@ bamsNormal_PoN.into {bamsNormal_PoN_bam_ ; bamsNormal_PoN_bai_ }
 bamsNormal_PoN_bam = bamsNormal_PoN_bam_.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bam]}
 bamsNormal_PoN_bai = bamsNormal_PoN_bai_.map { shared_matched_pair_id, unique_subject_id, case_control_status, name, bam, bai -> [bai]}
 
-ref_mutect = fasta_mutect.merge(fai_mutect, dict_mutect)
-variant_calling = combined_bam.combine(ref_mutect)
-variant_calling_intervals = intervals_mutect.combine(variant_calling)
-variant_calling_intervals.into{ mutect; names_for_vcf2maf}
-
-
 process run_mutect2_tumor_only_mode {
 
     tag "${normal_bam}"
@@ -445,7 +439,7 @@ process create_GenomicsDB {
 
 process create_somatic_PoN {
     
-    tag "$af_only_gnomad_vcf"
+    tag "$pon_db"
     publishDir "${params.outdir}/CreateSomaticPanelOfNormals", mode: 'copy'
     container "broadinstitute/gatk:latest"
 
@@ -458,7 +452,8 @@ process create_somatic_PoN {
     file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel_PoN
 
     output:
-    set file("pon.vcf.gz"), file("pon.vcf.gz.tbi") into create_somatic_PoN_results_channel
+    file("*.vcf.gz") into pon_vcf_gz_for_PoN_results_channel
+    file("*.vcf.gz.tbi") into pon_vcf_gz_tbi_for_PoN_results_channel
     
     script:
     """
@@ -470,6 +465,9 @@ process create_somatic_PoN {
     """
 }
 
+combined_bam.into {combined_bam_to_view ; combined_bam_mutect }
+combined_bam_to_view.view()
+
 process Mutect2 {
 
     tag "${tumourSampleId}_vs_${sampleId}.vcf"
@@ -478,11 +476,15 @@ process Mutect2 {
 
     input:
     set file(intervals_mutect), val(patientId), val(sampleId), val(status), val(name), file(bam), file(bai),
-    val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai),
-    file(fasta), file(fai), file(dict) from mutect.collect()
-    file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel
-    file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
-    set file(pon_vcf_gz), file(pon_vcf_gz_tbi) from create_somatic_PoN_results_channel
+    val(tumourSampleId), val(tumourStatus), val(tumourName), file(tumourBam), file(tumourBai) from combined_bam_mutect
+    each file(fasta) from fasta_mutect
+    each file(fai) from fai_mutect
+    each file(dict) from dict_mutect
+    each file(intervals_mutect) from intervals_mutect
+    each file(af_only_gnomad_vcf) from af_only_gnomad_vcf_channel
+    each file(af_only_gnomad_vcf_idx) from af_only_gnomad_vcf_idx_channel
+    each file(pon_vcf_gz) from pon_vcf_gz_for_PoN_results_channel
+    each file(pon_vcf_gz_tbi) from pon_vcf_gz_tbi_for_PoN_results_channel
 
     output:
     set val("${tumourSampleId}_vs_${sampleId}"), file("${tumourSampleId}_vs_${sampleId}.vcf"),  file("${tumourSampleId}_vs_${sampleId}.vcf.idx"), file("${tumourSampleId}_vs_${sampleId}.vcf.stats") into vcf_variant_eval, vcf_for_vcf2maf, vcf_for_filter_mutect_calls
