@@ -527,8 +527,8 @@ process FilterMutectCalls {
     each file(dict) from dict_filter_mutect_calls
 
     output:
-    file("*vcf") into vcf_filtered_for_vcf2maf
-    file("*vcf.idx") into idx_vcf_filtered_for_vcf2maf
+    file("*vcf") into vcf_filtered_for_vcf2maf, vcf_filtered_for_variant_filtration
+    file("*vcf.idx") into idx_vcf_filtered_for_vcf2maf, idx_vcf_filtered_for_variant_filtration
     file("*filteringStats.tsv") into filterStats_vcf_filtered_for_vcf2maf
  
     script:
