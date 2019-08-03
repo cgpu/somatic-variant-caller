@@ -466,7 +466,7 @@ process create_somatic_PoN {
 }
 
 combined_bam.into {combined_bam_to_view ; combined_bam_mutect }
-combined_bam_to_view.view()
+// combined_bam_to_view.view()
 
 process Mutect2 {
 
