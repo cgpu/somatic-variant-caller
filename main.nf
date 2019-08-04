@@ -562,13 +562,14 @@ process Vcf2maf {
     script:
     """
     filename=`echo ${filtered_vcf}`
+    basename=`echo \$filename | cut -f 1 -d '.'`
 
     tumourID=`echo \$filename | cut -f 1 -d '_'`
     normalID=`echo \$filename | cut -f 4 -d '_'`
 
     perl /opt/vcf2maf/vcf2maf.pl \
     --input-vcf $filtered_vcf \
-    --output-maf "${filtered_vcf}.maf"  \
+    --output-maf "\${basename}.maf"  \
     --tumor-id \${tumourID} \
     --normal-id \${normalID} \
     --ref-fasta /vepdata/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa \
