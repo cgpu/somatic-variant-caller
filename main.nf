@@ -425,10 +425,9 @@ process run_mutect2_tumor_only_mode {
 
     script:
     """
-
     gatk Mutect2 \
     -R ${ref} \
-    -I ${normal_bam} -normal ${normal_bam.simpleName.minus('_Normal').minus('_bqsr')} \
+    -I ${normal_bam} -normal ${normal_bam.simpleName.minus('_Normal').minus('_bqsr').minus('_a').minus('_b')} \
     --max-mnp-distance 0 \
     -O ${normal_bam.baseName}.vcf.gz \
     -L $intervals \
@@ -528,10 +527,13 @@ process Mutect2 {
     tumourName_trimmed=`echo \${tumourName_bash%_*}`
     name_trimmed=`echo \${name_bash%_*}`
 
+    tumourName_trimmed_remove_a_b=`echo \${tumourName_trimmed%_*}`
+    name_trimmed_trimmed_remove_a_b=`echo \${name_trimmed%_*}`
+
     gatk Mutect2 \
     -R ${fasta} \
-    -I ${tumourBam}  -tumor \${tumourName_trimmed} \
-    -I ${bam} -normal \${name_trimmed} \
+    -I ${tumourBam}  -tumor \${tumourName_trimmed_remove_a_b} \
+    -I ${bam} -normal \${name_trimmed_trimmed_remove_a_b} \
     -O ${tumourSampleId}_vs_${sampleId}.vcf \
     -L $intervals_mutect \
     --panel-of-normals  $pon_vcf_gz \
@@ -590,9 +592,12 @@ process Vcf2maf {
  
     script:
     """
-    filename=`echo ${filtered_vcf}`
+    a_to_remove='_a'
+    b_to_remove='_b'
+    temp_temp_filename=`echo ${filtered_vcf}`
+    temp_filename=${temp_temp_filename//$a_to_remove/}
+    filename=${temp_filename//$b_to_remove/}
     basename=`echo \$filename | cut -f 1 -d '.'`
-
     tumourID=`echo \$filename | cut -f 1 -d '_'`
     normalID=`echo \$filename | cut -f 4 -d '_'`
 
