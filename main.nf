@@ -568,7 +568,7 @@ process Vcf2maf {
 
     perl /opt/vcf2maf/vcf2maf.pl \
     --input-vcf $filtered_vcf \
-    --output-maf maf  \
+    --output-maf "${filtered_vcf}.maf"  \
     --tumor-id \${tumourID} \
     --normal-id \${normalID} \
     --ref-fasta /vepdata/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa \
