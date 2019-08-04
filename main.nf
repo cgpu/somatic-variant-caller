@@ -550,8 +550,8 @@ process Vcf2maf {
     publishDir "${params.outdir}/Vcf2maf", mode: 'copy'
 
     input:
-    file(filtered_vcf) from vcf_filtered_for_vcf2maf.collect()
-    file(filtered_vcf_idx) from idx_vcf_filtered_for_vcf2maf.collect()
+    file(filtered_vcf) from vcf_filtered_for_vcf2maf
+    file(filtered_vcf_idx) from idx_vcf_filtered_for_vcf2maf
     each file(fasta) from fasta_vcf2maf
     each file(fai) from fai_vcf2maf
     each file(dict) from dict_vcf2maf
