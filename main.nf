@@ -256,7 +256,7 @@ process MarkDuplicates {
     --OUTPUT ${name}.bam \
     --METRICS_FILE ${name}.bam.metrics \
     --CREATE_INDEX true  \
-    --READ_NAME_REGEX <optimized capture of last three ':' separated fields as numeric values> \
+    --READ_NAME_REGEX null \
     --MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP 50000 \
     --MAX_FILE_HANDLES_FOR_READ_ENDS_MAP 8000 \
     --SORTING_COLLECTION_SIZE_RATIO 0.25 \
