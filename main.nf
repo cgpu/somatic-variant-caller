@@ -574,6 +574,10 @@ process FilterMutectCalls {
 
 // TODO: Fix this flaky quick fix for T-N ID with more robust pattern matching
 
+// helper variables
+a_to_remove='_a'
+b_to_remove='_b'
+
 process Vcf2maf {
 
     tag "${filtered_vcf}"
@@ -592,14 +596,12 @@ process Vcf2maf {
  
     script:
     """
-    a_to_remove='_a'
-    b_to_remove='_b'
-    temp_temp_filename=`echo ${filtered_vcf}`
-    temp_filename=${temp_temp_filename//$a_to_remove/}
-    filename=${temp_filename//$b_to_remove/}
-    basename=`echo \$filename | cut -f 1 -d '.'`
-    tumourID=`echo \$filename | cut -f 1 -d '_'`
-    normalID=`echo \$filename | cut -f 4 -d '_'`
+    temp_temp_filename=\$(echo ${filtered_vcf}) 
+    temp_filename=\${temp_temp_filename//$a_to_remove/}
+    filename=\${temp_filename//$b_to_remove/}
+    basename=\$(echo \$filename | cut -f 1 -d '.')
+    tumourID=\$(echo \$filename | cut -f 1 -d '_')
+    normalID=\$(echo \$filename | cut -f 4 -d '_')
 
     perl /opt/vcf2maf/vcf2maf.pl \
     --input-vcf $filtered_vcf \
