@@ -252,9 +252,9 @@ process MarkDuplicates {
 
     """
     gatk MarkDuplicates  \
-    --INPUT  ${bam_sort} \
-    --OUTPUT ${name}.bam \
-    --METRICS_FILE ${name}.bam.metrics \
+    -I  ${bam_sort} \
+    -O ${name}.bam \
+    -M ${name}.bam.metrics \
     --CREATE_INDEX true  \
     --READ_NAME_REGEX null \
     --MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP 50000 \
