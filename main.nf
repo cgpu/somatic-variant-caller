@@ -600,8 +600,6 @@ process multiqc {
     !params.skip_multiqc
 
     input:
-    file (bam_metrics) from markDuplicatesReport.collect().ifEmpty([])
-    file (bamQC) from bamQCmappedReport.collect().ifEmpty([])
     file (bamQCrecalibrated) from bamQCrecalibratedReport.collect().ifEmpty([])
     file (baseRecalibrator) from baseRecalibratorReport.collect().ifEmpty([])
     
