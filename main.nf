@@ -247,7 +247,7 @@ process MarkDuplicates {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam_sort) from bam_sort
 
     output:
-    set val(name), file("${name}.bam"), file("${name}.bai"), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) into bam_markdup_baserecalibrator, bam_markdup_applybqsr
+    set val(name), file("${name}.bam"), file("${name}.bai"), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) into bam_sort_baserecalibrator, bam_sort_applybqsr
     file ("${name}.bam.metrics") into markDuplicatesReport
 
     """
@@ -261,7 +261,7 @@ process MarkDuplicates {
 }
 
 baserecalibrator_index = fasta_baserecalibrator.merge(fai_baserecalibrator, dict_baserecalibrator, dbsnp, dbsnp_idx, golden_indel, golden_indel_idx)
-baserecalibrator = bam_markdup_baserecalibrator.combine(baserecalibrator_index)
+baserecalibrator = bam_sort_baserecalibrator.combine(baserecalibrator_index)
 
 process BaseRecalibrator {
     tag "$bam_markdup"
@@ -285,7 +285,7 @@ process BaseRecalibrator {
     """
 }
 
-applybqsr = baserecalibrator_table.join(bam_markdup_applybqsr)
+applybqsr = baserecalibrator_table.join(bam_sort_applybqsr)
 
 process ApplyBQSR {
     tag "$baserecalibrator_table"
