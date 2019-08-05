@@ -611,6 +611,6 @@ process multiqc {
 
     script:
     """
-    multiqc . -m picard -m qualimap -m gatk
+    multiqc . -m qualimap -m gatk
     """
 }
