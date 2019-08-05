@@ -198,15 +198,15 @@ process BAM_sort {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bams
 
     output:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc, bam_sort_baserecalibrator, bam_sort_applybqsr
 
     """
     samtools index $bam
     samtools view \
     -b $bam \
     chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr9 chr20 chr21 chr22  > temp.bam && mv temp.bam ${name}.bam
-    samtools sort -o ${name}_mitoless.bam ${name}.bam 
-    rm ${name}.bam
+    samtools sort -o temp.bam ${name}.bam
+    rm ${name}.bam && temp.bam ${name}.bam
     """
 }
 
@@ -235,33 +235,12 @@ process RunBamQCmapped {
     -skip-duplicated \
     --skip-dup-mode 0 \
     -outdir ${name} \
-    -outformat HTML
-    """
-}
-
-process MarkDuplicates {
-    tag "$bam_sort"
-    container 'broadinstitute/gatk:latest'
-
-    input:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam_sort) from bam_sort
-
-    output:
-    set val(name), file("${name}.bam"), file("${name}.bai"), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) into bam_markdup_baserecalibrator, bam_markdup_applybqsr
-    file ("${name}.bam.metrics") into markDuplicatesReport
-
-    """
-    gatk MarkDuplicates  \
-    -I  ${bam_sort} \
-    -O ${name}.bam \
-    -M ${name}.bam.metrics \
-    --CREATE_INDEX true  \
-    --READ_NAME_REGEX null 
+    -outformat HTML 
     """
 }
 
 baserecalibrator_index = fasta_baserecalibrator.merge(fai_baserecalibrator, dict_baserecalibrator, dbsnp, dbsnp_idx, golden_indel, golden_indel_idx)
-baserecalibrator = bam_markdup_baserecalibrator.combine(baserecalibrator_index)
+baserecalibrator = bam_sort_baserecalibrator.combine(baserecalibrator_index)
 
 process BaseRecalibrator {
     tag "$bam_markdup"
@@ -285,7 +264,7 @@ process BaseRecalibrator {
     """
 }
 
-applybqsr = baserecalibrator_table.join(bam_markdup_applybqsr)
+applybqsr = baserecalibrator_table.join(bam_sort_applybqsr)
 
 process ApplyBQSR {
     tag "$baserecalibrator_table"
@@ -299,7 +278,7 @@ process ApplyBQSR {
 
     script:
     """
-    gatk ApplyBQSR -I $bam -bqsr $baserecalibrator_table -OBI -O ${name}_bqsr.bam
+    gatk ApplyBQSR -I $bam -bqsr $baserecalibrator_table -OBI -O ${name}_bqsr.bam --read-validation-stringency
     """
 }
 
@@ -600,7 +579,6 @@ process multiqc {
     !params.skip_multiqc
 
     input:
-    file (bam_metrics) from markDuplicatesReport.collect().ifEmpty([])
     file (bamQC) from bamQCmappedReport.collect().ifEmpty([])
     file (bamQCrecalibrated) from bamQCrecalibratedReport.collect().ifEmpty([])
     file (baseRecalibrator) from baseRecalibratorReport.collect().ifEmpty([])
