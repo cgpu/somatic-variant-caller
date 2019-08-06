@@ -612,3 +612,4 @@ process multiqc {
     """
     multiqc .
     """
+}
