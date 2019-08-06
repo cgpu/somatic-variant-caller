@@ -206,7 +206,7 @@ process BAM_sort {
     -b $bam \
     chr21 chr22  > temp.bam && mv temp.bam ${name}.bam
     samtools sort -o temp.bam ${name}.bam
-    rm ${name}.bam && temp.bam ${name}.bam
+    rm ${name}.bam && mv temp.bam ${name}.bam
     """
 }
 
