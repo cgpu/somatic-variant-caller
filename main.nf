@@ -198,7 +198,7 @@ process BAM_sort {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bams
 
     output:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}.bam") into bam_sort, bam_sort_qc
 
     """
     samtools index $bam
