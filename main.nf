@@ -198,15 +198,15 @@ process BAM_sort {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bams
 
     output:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}.bam") into bam_sort, bam_sort_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc, bam_sort_baserecalibrator, bam_sort_applybqsr
 
     """
     samtools index $bam
     samtools view \
     -b $bam \
     chr21 chr22  > temp.bam && mv temp.bam ${name}.bam
-    samtools sort -o temp.bam ${name}.bam
-    rm ${name}.bam && mv temp.bam ${name}.bam
+    samtools sort -o ${name}_mitoless.bam ${name}.bam
+    rm ${name}.bam
     """
 }
 
@@ -214,7 +214,7 @@ process RunBamQCmapped {
     tag "$bam"
 
     container 'maxulysse/sarek:latest'
-
+    publishDir "${params.outdir}/BaseRecalibrator", mode: 'copy'
     input:
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bam_sort_qc
 
@@ -239,32 +239,12 @@ process RunBamQCmapped {
     """
 }
 
-process MarkDuplicates {
-    tag "$bam_sort"
-    container 'broadinstitute/gatk:latest'
-
-    input:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam_sort) from bam_sort
-
-    output:
-    set val(name), file("${name}.bam"), file("${name}.bai"), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) into bam_sort_baserecalibrator, bam_sort_applybqsr
-    file ("${name}.bam.metrics") into markDuplicatesReport
-
-    """
-    gatk MarkDuplicates  \
-    -I  ${bam_sort} \
-    -O ${name}.bam \
-    -M ${name}.bam.metrics \
-    --CREATE_INDEX true  \
-    --READ_NAME_REGEX null 
-    """
-}
-
 baserecalibrator_index = fasta_baserecalibrator.merge(fai_baserecalibrator, dict_baserecalibrator, dbsnp, dbsnp_idx, golden_indel, golden_indel_idx)
 baserecalibrator = bam_sort_baserecalibrator.combine(baserecalibrator_index)
 
 process BaseRecalibrator {
     tag "$bam_markdup"
+    publishDir "${params.outdir}/BaseRecalibrator", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
     input:
@@ -289,6 +269,7 @@ applybqsr = baserecalibrator_table.join(bam_sort_applybqsr)
 
 process ApplyBQSR {
     tag "$baserecalibrator_table"
+    publishDir "${params.outdir}/ApplyBQSR", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
     input:
@@ -305,7 +286,7 @@ process ApplyBQSR {
 
 process RunBamQCrecalibrated {
     tag "$bam"
-
+    publishDir "${params.outdir}/RunBamQCrecalibrated", mode: 'copy'
     container 'maxulysse/sarek:latest'
 
     input:
