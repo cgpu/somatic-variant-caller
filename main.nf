@@ -243,12 +243,12 @@ baserecalibrator_index = fasta_baserecalibrator.merge(fai_baserecalibrator, dict
 baserecalibrator = bam_sort_baserecalibrator.combine(baserecalibrator_index)
 
 process BaseRecalibrator {
-    tag "$bam_markdup"
+    tag "$bam_sort"
     publishDir "${params.outdir}/BaseRecalibrator", mode: 'copy'
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(name), file(bam_markdup), file(bai), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), 
+    set val(name), file(bam_sort), file(bai), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), 
     file(fasta), file(fai), file(dict), file(dbsnp), file(dbsnp_idx), file(golden_indel), file(golden_indel_idx) from baserecalibrator
 
     output:
