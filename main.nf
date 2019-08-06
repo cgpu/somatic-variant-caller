@@ -591,3 +591,24 @@ process Vcf2maf {
     --cache-version 89
     """
 }
+
+process multiqc {
+    publishDir "${params.outdir}/MultiQC", mode: 'copy'
+    container 'ewels/multiqc:v1.7'
+
+    when:
+    !params.skip_multiqc
+
+    input:
+    file (bamQC) from bamQCmappedReport.collect().ifEmpty([])
+    file (bamQCrecalibrated) from bamQCrecalibratedReport.collect().ifEmpty([])
+    file (baseRecalibrator) from baseRecalibratorReport.collect().ifEmpty([])
+
+    output:
+    file "*multiqc_report.html" into multiqc_report
+    file "*_data"
+
+    script:
+    """
+    multiqc .
+    """
