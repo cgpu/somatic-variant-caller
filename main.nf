@@ -140,8 +140,8 @@ process gunzip_dbsnp {
     file dbsnp_idx_gz from dbsnp_idx_gz
 
   	output:
-  	file "*.vcf" into dbsnp, dbsnp_variantrecalibrator_snps, dbsnp_variantrecalibrator_indels
-  	file "*.vcf.idx" into dbsnp_idx, dbsnp_idx_variantrecalibrator_snps, dbsnp_idx_variantrecalibrator_indels
+    file "*.vcf" into dbsnp, dbsnp_variantrecalibrator_snps, dbsnp_variantrecalibrator_indels, dbsnp_base_recalibrator
+    file "*.vcf.idx" into dbsnp_idx, dbsnp_idx_variantrecalibrator_snps, dbsnp_idx_variantrecalibrator_indels, idx_dbsnp_base_recalibrator
 
     script:
     if ( "${dbsnp_gz}".endsWith(".gz") ) {
@@ -165,8 +165,8 @@ process gunzip_golden_indel {
     file golden_indel_idx_gz from golden_indel_idx_gz
 
     output:
-    file "*.vcf" into golden_indel, golden_indel_variantrecalibrator_indels
-    file "*.vcf.idx" into golden_indel_idx, golden_indel_idx_variantrecalibrator_indels
+    file "*.vcf" into golden_indel, golden_indel_variantrecalibrator_indels, golden_indel_base_recalibrator
+    file "*.vcf.idx" into golden_indel_idx, golden_indel_idx_variantrecalibrator_indels, idx_golden_indel_base_recalibrator
 
     script:
     if ( "${golden_indel_gz}".endsWith(".gz") ) {
@@ -198,7 +198,7 @@ process BAM_sort {
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bams
 
     output:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_mitoless.bam") into bam_sort, bam_sort_qc,  bam_sort_baserecalibrator, bam_sort_applybqsr
 
     """
     samtools index $bam
@@ -239,45 +239,28 @@ process RunBamQCmapped {
     """
 }
 
-process MarkDuplicates {
-    tag "$bam_sort"
-    container 'broadinstitute/gatk:latest'
-
-    input:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam_sort) from bam_sort
-
-    output:
-    set val(name), file("${name}.bam"), file("${name}.bai"), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) into bam_sort_baserecalibrator, bam_sort_applybqsr
-    file ("${name}.bam.metrics") into markDuplicatesReport
-
-    """
-    gatk MarkDuplicates  \
-    -I  ${bam_sort} \
-    -O ${name}.bam \
-    -M ${name}.bam.metrics \
-    --CREATE_INDEX true  \
-    --READ_NAME_REGEX null 
-    """
-}
-
-baserecalibrator_index = fasta_baserecalibrator.merge(fai_baserecalibrator, dict_baserecalibrator, dbsnp, dbsnp_idx, golden_indel, golden_indel_idx)
-baserecalibrator = bam_sort_baserecalibrator.combine(baserecalibrator_index)
-
 process BaseRecalibrator {
-    tag "$bam_markdup"
+    tag "$name"
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(name), file(bam_markdup), file(bai), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), 
-    file(fasta), file(fai), file(dict), file(dbsnp), file(dbsnp_idx), file(golden_indel), file(golden_indel_idx) from baserecalibrator
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bam_sort_baserecalibrator
+    each file(fasta) from fasta_baserecalibrator
+    each file(fai) from fai_baserecalibrator
+    each file(dict) from dict_baserecalibrator
+    each file(dbsnp) from dbsnp_base_recalibrator
+    each file(idx_dbsnp) from idx_dbsnp_base_recalibrator
+    each file(golden_indel) from golden_indel_base_recalibrator
+    each file(idx_golden_indel) from idx_golden_indel_base_recalibrator
 
     output:
-    set val(name), file("${name}_recal_data.table") into baserecalibrator_table
+    file("${name}_recal_data.table") into baserecalibrator_table_channel
     file("*data.table") into baseRecalibratorReport
 
+    script:
     """
     gatk BaseRecalibrator \
-    -I $bam_markdup \
+    -I $bam \
     --known-sites $dbsnp \
     --known-sites $golden_indel \
     -O ${name}_recal_data.table \
@@ -285,14 +268,13 @@ process BaseRecalibrator {
     """
 }
 
-applybqsr = baserecalibrator_table.join(bam_sort_applybqsr)
-
 process ApplyBQSR {
-    tag "$baserecalibrator_table"
+    tag "$name"
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(name), file(baserecalibrator_table), file(bam), file(bai), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status) from applybqsr
+    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bam_sort_applybqsr
+    each baserecalibrator_table from baserecalibrator_table_channel
 
     output:
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_bqsr.bam"), file("${name}_bqsr.bai") into bam_for_qc, bam_haplotypecaller, bam_mutect
@@ -305,7 +287,6 @@ process ApplyBQSR {
 
 process RunBamQCrecalibrated {
     tag "$bam"
-
     container 'maxulysse/sarek:latest'
 
     input:
@@ -350,7 +331,6 @@ process HaplotypeCaller {
     output:
     file("${name}.g.vcf") into haplotypecaller_gvcf
     file("${name}.g.vcf.idx") into index
-    val(name) into name_mergevcfs
 
     when: !params.skip_haplotypecaller
 
@@ -587,7 +567,29 @@ process Vcf2maf {
     --vep-data /vepdata/ \
     --vep-forks 2 \
     --buffer-size 200 \
-    --species homo_sapiens     \
+    --species homo_sapiens \
     --cache-version 89
+    """
+}
+
+process multiqc {
+    publishDir "${params.outdir}/MultiQC", mode: 'copy'
+    container 'ewels/multiqc:v1.7'
+
+    when:
+    !params.skip_multiqc
+
+    input:
+    file (bamQC) from bamQCmappedReport.collect().ifEmpty([])
+    file (bamQCrecalibrated) from bamQCrecalibratedReport.collect().ifEmpty([])
+    file (baseRecalibrator) from baseRecalibratorReport.collect().ifEmpty([])
+
+    output:
+    file "*multiqc_report.html" into multiqc_report
+    file "*_data"
+
+    script:
+    """
+    multiqc .
     """
 }
