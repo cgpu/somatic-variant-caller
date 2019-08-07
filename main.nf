@@ -245,6 +245,7 @@ process BaseRecalibrator {
 
     input:
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bam_sort_baserecalibrator
+
     each file(fasta) from fasta_baserecalibrator
     each file(fai) from fai_baserecalibrator
     each file(dict) from dict_baserecalibrator
@@ -254,7 +255,7 @@ process BaseRecalibrator {
     each file(idx_golden_indel) from idx_golden_indel_base_recalibrator
 
     output:
-    file("${name}_recal_data.table") into baserecalibrator_table_channel
+    set val(name), file("${name}_recal_data.table") into baserecalibrator_table_channel
     file("*data.table") into baseRecalibratorReport
 
     script:
@@ -268,13 +269,15 @@ process BaseRecalibrator {
     """
 }
 
+bam_sort_applybqsr_reordered = bam_sort_applybqsr.map { shared_matched_pair_id, unique_subject_id, case_control_status, name , bam -> [ name, shared_matched_pair_id, unique_subject_id, case_control_status, bam ]}
+apply_bqsr = bam_sort_applybqsr_reordered.combine(baserecalibrator_table_channel, by: 0)
+
 process ApplyBQSR {
     tag "$name"
     container 'broadinstitute/gatk:latest'
 
     input:
-    set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file(bam) from bam_sort_applybqsr
-    each baserecalibrator_table from baserecalibrator_table_channel
+    set val(name), val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), file(bam), file(baserecalibrator_table) from apply_bqsr
 
     output:
     set val(shared_matched_pair_id), val(unique_subject_id), val(case_control_status), val(name), file("${name}_bqsr.bam"), file("${name}_bqsr.bai") into bam_for_qc, bam_haplotypecaller, bam_mutect
