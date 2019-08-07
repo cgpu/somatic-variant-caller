@@ -212,7 +212,6 @@ process BAM_sort {
 
 process RunBamQCmapped {
     tag "$bam"
-
     container 'maxulysse/sarek:latest'
 
     input:
@@ -363,7 +362,6 @@ bamsNormal_PoN_bai = bamsNormal_PoN_bai_.map { shared_matched_pair_id, unique_su
 process run_mutect2_tumor_only_mode {
 
     tag "${normal_bam}"
-    publishDir "${params.outdir}/MutectTumorOnlyMode", mode: 'copy'
     container "broadinstitute/gatk:latest"
 
     input:
@@ -393,7 +391,6 @@ process run_mutect2_tumor_only_mode {
 process create_GenomicsDB {
 
     tag "all_the_Normals_vcfs!"
-    publishDir "${params.outdir}/GenomicsDBImport", mode: 'copy'
     container "broadinstitute/gatk:latest"
 
     input:
@@ -423,7 +420,6 @@ process create_GenomicsDB {
 process create_somatic_PoN {
     
     tag "$pon_db"
-    publishDir "${params.outdir}/CreateSomaticPanelOfNormals", mode: 'copy'
     container "broadinstitute/gatk:latest"
 
     input:
